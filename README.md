@@ -1,1 +1,1 @@
-# paf-projet
+# Dune II projet en Haskell
