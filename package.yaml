@@ -21,6 +21,8 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- containers
+- hspec
 
 ghc-options:
 - -Wall
@@ -46,6 +48,8 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - paf-projet
+    - base >= 4.7 && < 5
+    - containers
 
 tests:
   paf-projet-test:
@@ -57,5 +61,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - paf-projet
+    - base >= 4.7 && < 5
+    - containers
 
 
