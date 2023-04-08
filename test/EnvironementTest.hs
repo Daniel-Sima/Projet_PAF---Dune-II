@@ -67,6 +67,9 @@ fac = Batiment "Faculte" 1 (C 0 0) (JoueurId 1)
 crous :: Batiment
 crous = Batiment "Crous" 10 (C 2 0) (JoueurId 2)
 
+cafet :: Batiment
+cafet = Batiment "Cafet" 5 (C 3 04) (JoueurId 3)
+
 facIllegal2 :: Batiment
 facIllegal2 = Batiment "" 8 (C 0 0) (JoueurId 1)
 
@@ -78,8 +81,14 @@ uniteEtudiant = Unite "Etudiant" (C 3 4) (JoueurId  1)
 uniteProf :: Unite
 uniteProf = Unite "Prof" (C 1 2) (JoueurId  2)
 
-uniteIllegal :: Unite
-uniteIllegal = Unite "" (C 0 0) (JoueurId  1)
+uniteIllegalName :: Unite
+uniteIllegalName = Unite "" (C 0 0) (JoueurId  1)
+
+uniteIllegalCoord :: Unite
+uniteIllegalCoord = Unite "Touriste" (C 5 5) (JoueurId  3)
+
+uniteEtudiantSameCase2 :: Unite
+uniteEtudiantSameCase2 = Unite "Etudiant2" (C 3 4) (JoueurId  4)
 
 -------------------------------------------------------------------------env------------------------------------------------------------------------------------
 envLegal :: Environnement
@@ -102,6 +111,21 @@ envIllegalBatsurEau = Environnement [player1, player3] carteEx (M.fromList [(Uni
 
 envIllegalBatHorsCarte :: Environnement
 envIllegalBatHorsCarte = Environnement [player1, player3] carteEx (M.fromList [(UniteId 1, uniteEtudiant), (UniteId 2, uniteProf)]) (M.fromList [(BatId 1, fac), (BatId 2, Batiment "BatHorsCarte" 10 (C 9 3) (JoueurId 2))])
+
+envIllegalUnitName :: Environnement
+envIllegalUnitName = Environnement [player1, player3] carteEx (M.fromList [(UniteId 1, uniteIllegalName), (UniteId 2, uniteProf)])  (M.fromList [(BatId 1, fac)])
+
+envIllegalUnitsurEau :: Environnement
+envIllegalUnitsurEau = Environnement [player1, player2] carteEx (M.fromList [(UniteId 1, uniteEtudiant), (UniteId 2, Unite "UnitsurEau" (C 3 3) (JoueurId 2))]) (M.fromList [(BatId 1, fac), (BatId 2, crous)])
+
+envIllegalUnitHorsCarte :: Environnement
+envIllegalUnitHorsCarte = Environnement [player1, player2] carteEx (M.fromList [(UniteId 1, uniteEtudiant), (UniteId 2, uniteIllegalCoord)]) (M.fromList [(BatId 1, fac), (BatId 2, crous)])
+
+envIllegalUnitBatAndUnitSameCaseHerbe :: Environnement
+envIllegalUnitBatAndUnitSameCaseHerbe = Environnement [player1, player2] carteEx (M.fromList [(UniteId 1, uniteEtudiant), (UniteId 2, uniteEtudiantSameCase2)]) (M.fromList [(BatId 1, cafet)])
+
+envIllegalUnitSurMemeRessource :: Environnement
+envIllegalUnitSurMemeRessource = Environnement [player1, player2] carteEx (M.fromList [(UniteId 1, Unite "UnitsurRessourse1" (C 1 2) (JoueurId 2)), (UniteId 2, Unite "UnitsurRessourse2" (C 1 2) (JoueurId 1))]) (M.fromList [(BatId 1, fac), (BatId 2, crous)])
 
 prop_inv_JoueurSpec = do
    describe "prop_inv_Joueur " $ do
@@ -137,7 +161,7 @@ prop_inv_UniteSpec = do
         `shouldBe` True
 
     it "returns false because length name is = 0" $ do
-      prop_inv_Unites uniteIllegal
+      prop_inv_Unites uniteIllegalName
         `shouldBe` False   
 
 prop_inv_EnvironnementSpec = do
@@ -173,6 +197,28 @@ prop_inv_EnvironnementSpec = do
       prop_inv_Environnement envIllegalBatHorsCarte
         `shouldBe` False
 
+    ------------------------------Unite tests-----------------------------------------------------------------------------
+    it "returns False because envIllegalUnitName has a Unit with name length = 0" $ do
+      prop_inv_Environnement envIllegalUnitName
+        `shouldBe` False
+
+    it "returns False because envIllegalUnitsurEau has a batiment on water" $ do
+      prop_inv_Environnement envIllegalUnitsurEau
+        `shouldBe` False
+
+    it "returns False because envIllegalUnitHorsCarte has a Unit out of carte" $ do
+      prop_inv_Environnement envIllegalUnitHorsCarte
+        `shouldBe` False
+    
+    it "returns False because envIllegalUnitBatAndUnitSameCaseHerbe has a Unit and Batiment on same the Herbe case" $ do
+      prop_inv_Environnement envIllegalUnitBatAndUnitSameCaseHerbe
+        `shouldBe` False
+    
+    it "returns False because there are two unite on the same ressource" $ do
+      prop_inv_Environnement envIllegalUnitSurMemeRessource
+        `shouldBe` False
+
+  
 
 engineSpec = do 
     prop_inv_JoueurSpec

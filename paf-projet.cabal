@@ -55,6 +55,7 @@ test-suite paf-projet-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      BatTest
       CarteTest
       EnvironementTest
       Paths_paf_projet

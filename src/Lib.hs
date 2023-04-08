@@ -10,6 +10,23 @@ module Lib
     prop_inv_Batiment,
     prop_inv_Unites,
     prop_inv_Environnement,
+    listCoordtoJoueur,
+    getAllBats,
+    envSmart,
+    getBatIdProprio,
+    destructionQG,
+    prop_pre_destructionQG,
+    prop_post_destructionQG,
+    set_raffinerie,
+    prop_pre_set_raffinerie,
+    getBatIdProprioCoord,
+    prop_post_set_raffinerie,
+    prop_pre_destruction_raffinerie,
+    destruction_raffinerie,
+    prop_post_destruction_raffinerie,
+    prop_pre_set_usine,
+    set_usine,
+    prop_post_set_usine,
     Coord(..),
     Terrain(..),
     Carte(..),
@@ -140,12 +157,12 @@ newtype JoueurId = JoueurId Int deriving (Show, Eq, Ord)
 data Joueur = Joueur {username :: String, userid :: JoueurId} deriving (Show, Eq, Ord)
 
 newtype BatId = BatId Int deriving (Show, Eq, Ord)
-data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId}
+data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId} deriving (Eq, Show)
 
 newtype UniteId = UniteId Int deriving (Show, Eq, Ord)
-data Unite = Unite {uNom :: String, unitCoord :: Coord, unitProprio :: JoueurId}
+data Unite = Unite {uNom :: String, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
 
-data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
+data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment} deriving (Eq, Show)
 
 ---------------------------------------------------------Joueur----------------------------------------------------------------------------------------------
 
@@ -164,10 +181,13 @@ get_usernames_Joueurs (Environnement j _ _ _ ) = fmap jusername j
 prop_inv_Joueur :: Joueur -> Bool
 prop_inv_Joueur (Joueur user id) = ((length user) > 0)
 
+getListPayers :: Environnement -> [Joueur]
+getListPayers (Environnement j _ _ _ ) = j
 --------------------------------------------------------Batiment--------------------------------------------------------------------------------------------------
 
 bproprio :: Batiment -> JoueurId
 bproprio (Batiment _ _ _ propio) = propio
+
 
 get_propios_batiment :: Environnement -> [JoueurId]
 get_propios_batiment (Environnement _ _ _ batiments) = fmap bproprio (M.elems batiments)
@@ -179,7 +199,10 @@ get_coords_batiment :: Environnement -> [Coord]
 get_coords_batiment (Environnement _ _ _ b) = fmap bcoord (M.elems b)
 
 prop_inv_Batiment :: Batiment -> Bool
-prop_inv_Batiment (Batiment bNom prix bcoord bproprio) = ((length bNom) > 0) && (prix > 0)
+prop_inv_Batiment (Batiment bNom prix bcoord bproprio) = ((length bNom) > 0) && (prix >= 0)
+
+get_number_BatId :: BatId -> Int
+get_number_BatId (BatId number) = number
 
 -------------------------------------------------------Unite-------------------------------------------------------------------------------------------------------
 prop_inv_Unites :: Unite -> Bool
@@ -213,6 +236,100 @@ prop_inv_Environnement (Environnement eJoueurs eCarte eUnites eBatiments) = let 
                     (Ressource _) -> False
                     _ -> True) (get_coords_batiment env)) && 
     (prop_inv_Carte eCarte)
+
+------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------- Part III ----------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------
+-- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
+-- data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId}
+
+-- counterHerbeMap :: Carte -> Int
+-- counterHerbeMap mapp = if ((M.size mapp) == 0) then 0
+--                        else M.foldr (\x-> if ((May.fromJust (M.lookup x (carte mapp))) == Herbe) then 1 else 0) 0 (carte mapp) 
+
+listCoordtoJoueur :: [Coord] -> Int -> [Joueur]
+listCoordtoJoueur listPlayers index = 
+    if (index < List.length listPlayers) then (Joueur ("" ++ show index) (JoueurId index)) : (listCoordtoJoueur listPlayers (index+1))
+    else []
+
+getAllBats :: [Coord] -> String -> [Joueur] -> Int -> [(BatId, Batiment)]
+getAllBats listCoord nameBat listPlayers prix = zip (fmap (\x -> BatId x) [0..((List.length listCoord)-1)]) (fmap (\(x,y) -> (Batiment nameBat prix x (jid y))) (zip listCoord listPlayers))
+
+envSmart :: Carte -> [Coord] -> Environnement
+envSmart mapp listPlayers | (allUnique listPlayers) = 
+                            if (List.all (\x -> (May.fromJust (M.lookup x (carte mapp))) == Herbe) listPlayers) then Environnement (listCoordtoJoueur listPlayers 0) (mapp) (M.empty) (M.fromList (getAllBats listPlayers "QG" (listCoordtoJoueur listPlayers 0) 0))
+                            else error "Not enough Herbe cases to build QRs for Players"
+                          | otherwise = error "Duplicate Players" 
+ 
+getBatIdProprio :: (M.Map BatId Batiment) -> JoueurId -> BatId
+getBatIdProprio mapBat jID = List.head (M.keys (M.filter (\x -> (bproprio x) == jID) mapBat))
+
+-----------------------------------------------------quartier generale-----------------------------------------------------------------------------------
+
+destructionQG :: Environnement -> Joueur -> Environnement -- TODO voir si on doit aussi supprimer tous les autres batiments
+destructionQG (Environnement joueurs mapp unites bats) player = (Environnement (List.delete player joueurs) mapp unites (M.delete (getBatIdProprio bats (jid player)) bats))  
+
+prop_pre_destructionQG :: Environnement -> Joueur -> Bool
+prop_pre_destructionQG (Environnement joueurs mapp unites bats) player = (elem player joueurs) && (prop_inv_Environnement (Environnement joueurs mapp unites bats))
+
+get_nom_batiment :: Batiment -> String
+get_nom_batiment (Batiment bNom _ _ _) = bNom
+
+getBatIdProprioCoord ::  (M.Map BatId Batiment) -> Coord -> BatId
+getBatIdProprioCoord mapBat coord = List.head (M.keys (M.filter (\x -> (bcoord x) == coord) mapBat))
+
+prop_post_destructionQG :: Environnement -> Joueur -> Bool
+prop_post_destructionQG (Environnement joueursAvant mappAvant unitesAvant batsAvant) player =
+    let (Environnement joueursApres mappApres unitesApres batsApres) = (destructionQG (Environnement joueursAvant mappAvant unitesAvant batsAvant) player)
+    in
+        (not (elem player joueursApres)) && ((List.delete player joueursAvant) == joueursApres) &&
+        (mappAvant == mappApres) && (unitesAvant == unitesApres) && (not (M.member (getBatIdProprio batsAvant (jid player)) batsApres)) &&
+        ((M.delete (getBatIdProprio batsAvant (jid player)) batsAvant) == batsApres) 
+
+----------------------------------------------------raffinerie-------------------------------------------------------------------------------------------
+
+set_raffinerie :: Environnement -> Coord -> Joueur -> Environnement
+set_raffinerie (Environnement joueurs mapp unites bats) coord player = (Environnement joueurs mapp unites (M.insert (BatId (M.size bats)) (Batiment "Raffinerie" 0 coord (jid player)) bats))
+
+prop_pre_set_raffinerie :: Environnement -> Coord -> Joueur -> Bool
+prop_pre_set_raffinerie (Environnement joueurs mapp unites bats) coord player = (May.fromJust (M.lookup coord (carte mapp)) == Herbe) && (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && (elem player joueurs) 
+
+prop_post_set_raffinerie :: Environnement -> Coord -> Joueur -> Bool
+prop_post_set_raffinerie (Environnement joueursAvant mappAvant unitesAvant batsAvant) coord player = 
+    let (Environnement joueursApres mappApres unitesApres batsApres) = set_raffinerie (Environnement joueursAvant mappAvant unitesAvant batsAvant) coord player
+    in (joueursAvant == joueursApres) && (mappAvant == mappApres) && (unitesAvant == unitesApres) &&
+        (M.member (getBatIdProprioCoord batsApres coord) batsApres) && ((M.delete (getBatIdProprioCoord batsApres coord) batsApres) == batsAvant) &&
+        (get_nom_batiment (May.fromJust (M.lookup (getBatIdProprioCoord batsApres coord) batsApres)) == "Raffinerie")
+
+prop_pre_destruction_raffinerie :: Environnement -> Coord -> Joueur -> Bool
+prop_pre_destruction_raffinerie (Environnement joueurs mapp unites bats) coord player = 
+    (M.member (getBatIdProprioCoord bats coord) bats) && (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && (elem player joueurs) &&
+    (bproprio (May.fromJust (M.lookup (getBatIdProprioCoord bats coord) bats))) == (jid player)
+
+destruction_raffinerie :: Environnement -> Coord -> Joueur -> Environnement
+destruction_raffinerie (Environnement joueurs mapp unites bats) coord player = (Environnement joueurs mapp unites (M.delete (getBatIdProprioCoord bats coord) bats))
+
+prop_post_destruction_raffinerie :: Environnement -> Coord -> Joueur -> Bool
+prop_post_destruction_raffinerie (Environnement joueursAvant mappAvant unitesAvant batsAvant) coord player = 
+    let (Environnement joueursApres mappApres unitesApres batsApres) = destruction_raffinerie (Environnement joueursAvant mappAvant unitesAvant batsAvant) coord player
+    in (joueursAvant == joueursApres) && (mappAvant == mappApres) && (unitesAvant == unitesApres) &&
+        (not (M.member (getBatIdProprioCoord batsAvant coord) batsApres)) && ((M.delete (getBatIdProprioCoord batsAvant coord) batsAvant) == batsApres)
+
+---------------------------------------------------------------usine------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+prop_pre_set_usine :: Environnement -> Coord -> Joueur -> Bool
+prop_pre_set_usine (Environnement joueurs mapp unites bats) coord player = (May.fromJust (M.lookup coord (carte mapp)) == Herbe) && (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && (elem player joueurs) 
+
+set_usine :: Environnement -> Coord -> Joueur -> Environnement
+set_usine (Environnement joueurs mapp unites bats) coord player = (Environnement joueurs mapp unites (M.insert (BatId (M.size bats)) (Batiment "Usine" 0 coord (jid player)) bats))
+
+prop_post_set_usine :: Environnement -> Coord -> Joueur -> Bool
+prop_post_set_usine (Environnement joueursAvant mappAvant unitesAvant batsAvant) coord player = 
+    let (Environnement joueursApres mappApres unitesApres batsApres) = set_usine (Environnement joueursAvant mappAvant unitesAvant batsAvant) coord player
+    in (joueursAvant == joueursApres) && (mappAvant == mappApres) && (unitesAvant == unitesApres) &&
+        (M.member (getBatIdProprioCoord batsApres coord) batsApres) && ((M.delete (getBatIdProprioCoord batsApres coord) batsApres) == batsAvant) &&
+        (get_nom_batiment (May.fromJust (M.lookup (getBatIdProprioCoord batsApres coord) batsApres)) == "Usine")
+
+
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
