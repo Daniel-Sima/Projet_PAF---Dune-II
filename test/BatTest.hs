@@ -48,13 +48,13 @@ listCoordIllegalEau = [(C 3 3), (C 3 0), (C 1 3)]
 listCoordIllegalMemeCoor = [(C 3 0), (C 3 0), (C 1 3)]
 
 player1 :: Joueur
-player1 = Joueur "0" (JoueurId 0)
+player1 = Joueur "0" (JoueurId 0) 100
 
 player2 :: Joueur
-player2 = Joueur "1" (JoueurId 1)
+player2 = Joueur "1" (JoueurId 1) 100
 
 player3 :: Joueur
-player3 = Joueur "2" (JoueurId 2)
+player3 = Joueur "2" (JoueurId 2) 100
 
 qr1 :: Batiment
 qr1 = Batiment "QG" 0 (C 0 2) (JoueurId 0)
@@ -71,6 +71,9 @@ r1 = Batiment "Raffinerie" 0 (C 3 2) (JoueurId 0)
 u1 :: Batiment
 u1 = Batiment "Usine" 0 (C 4 4) (JoueurId 0)
 
+c1 :: Batiment
+c1 = Batiment "Centrale" 0 (C 3 4) (JoueurId 0)
+
 envRes :: Environnement
 envRes = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3)])
 
@@ -82,6 +85,9 @@ envRes_raffinerie = Environnement [player1, player2, player3] carteEx (M.empty) 
 
 envRes_usine :: Environnement
 envRes_usine = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, u1)])
+
+envRes_centrale :: Environnement
+envRes_centrale = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, c1)])
 
 
 envSmartSpec = do
@@ -154,6 +160,10 @@ prop_pre_destruction_raffinerie_Spec = do
             prop_pre_destruction_raffinerie envRes_raffinerie (C 3 2) player1
                 `shouldBe` True
         
+        it "returns False because the batiment in '(C 0 2)' is not an usine but an QG." $ do
+            prop_pre_destruction_raffinerie envRes_raffinerie (C 0 2) player1
+                `shouldBe` False
+        
 destruction_raffinerie_Spec = do 
     describe "destruction_raffinerie" $ do
 
@@ -168,7 +178,7 @@ prop_post_destruction_raffinerie_Spec = do
             prop_post_destruction_raffinerie envRes_raffinerie (C 3 2) player1
                 `shouldBe` True
 
----------------------------------------------------usine test-----------------------------------------------------------------------------------------------
+--------------------------------------------------- Usine tests -----------------------------------------------------------------------------------------------
 
 prop_pre_set_usine_Spec = do 
    describe "prop_pre_set_usine" $ do
@@ -194,6 +204,84 @@ prop_post_set_usine_Spec = do
         it "returns True because the usine has been built and the other things is not changed " $ do
             prop_post_set_usine envRes (C 4 4) player1
                 `shouldBe` True
+                
+prop_pre_destruction_usine_Spec = do
+    describe "prop_pre_destruction_usine" $ do
+
+        it "returns True because the usine in '(C 4 4)' exists in 'envRes_usine' for 'player1" $ do
+            prop_pre_destruction_usine envRes_usine (C 4 4) player1
+                `shouldBe` True
+        
+        it "returns False because the batiment in '(C 0 2)' is not an usine but an QG." $ do
+            prop_pre_destruction_usine envRes_usine (C 0 2) player1
+                `shouldBe` False
+
+destruction_usine_Spec = do 
+    describe "destruction_usine" $ do
+
+        it "returns the enviroment which the usine has been removed" $ do
+            destruction_usine envRes_usine (C 4 4) player1 
+                `shouldBe` envRes
+
+prop_post_destruction_usine_Spec = do
+    describe "prop_post_destruction_usine" $ do
+
+        it "returns True because the usine has been removed and the other things not changed " $ do
+            prop_post_destruction_usine envRes_usine (C 4 4) player1
+                `shouldBe` True
+
+--------------------------------------------------- Centrale tests -----------------------------------------------------------------------------------------------
+
+prop_pre_set_centrale_Spec = do 
+   describe "prop_pre_set_centrale" $ do
+        
+    it "returns False because '(C 4 0)' case is not Herbe but Eau" $ do
+        prop_pre_set_centrale envRes (C 4 0) player1
+            `shouldBe` False
+
+    it "returns True because '(C 3 4)' case is Herbe, 'envRes' invariant has worked and 'player1' is present in 'envRes'." $ do
+        prop_pre_set_centrale envRes (C 3 4) player1
+            `shouldBe` True
+
+set_centrale_Spec = do 
+    describe "set_centrale" $ do
+
+        it "returns the enviroment which the centrale has been built" $ do
+            set_centrale envRes (C 3 4) player1 
+                `shouldBe` envRes_centrale
+
+prop_post_set_centrale_Spec = do 
+    describe "prop_post_set_centrale" $ do
+
+        it "returns True because the centrale has been built and the other things is not changed " $ do
+            prop_post_set_centrale envRes (C 3 4) player1
+                `shouldBe` True
+
+prop_pre_destruction_centrale_Spec = do
+    describe "prop_pre_destruction_centrale" $ do
+
+        it "returns True because the Centrale in '(C 3 4)' exists in 'envRes_centrale' for 'player1" $ do
+            prop_pre_destruction_centrale envRes_centrale (C 3 4) player1
+                `shouldBe` True
+        
+        it "returns False because the batiment in '(C 3 0)' is not an usine but an QG." $ do
+            prop_pre_destruction_centrale envRes_centrale (C 3 0) player1
+                `shouldBe` False
+
+destruction_centrale_Spec = do 
+    describe "destruction_centrale" $ do
+
+        it "returns the enviroment which the centrale has been removed" $ do
+            destruction_centrale envRes_centrale (C 3 4) player1 
+                `shouldBe` envRes
+
+prop_post_destruction_centrale_Spec = do
+    describe "prop_post_destruction_centrale" $ do
+
+        it "returns True because the centrale has been removed and the other things not changed " $ do
+            prop_post_destruction_centrale envRes_centrale (C 3 4) player1
+                `shouldBe` True
+
 
 engineSpec = do 
     envSmartSpec
@@ -209,3 +297,12 @@ engineSpec = do
     prop_pre_set_usine_Spec
     set_usine_Spec
     prop_post_set_usine_Spec
+    prop_pre_destruction_usine_Spec
+    destruction_usine_Spec
+    prop_post_destruction_usine_Spec
+    prop_pre_set_centrale_Spec
+    set_centrale_Spec
+    prop_post_set_centrale_Spec
+    prop_pre_destruction_centrale_Spec
+    destruction_centrale_Spec
+    prop_post_destruction_centrale_Spec

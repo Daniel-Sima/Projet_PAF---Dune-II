@@ -43,22 +43,22 @@ carteEx = Carte (M.fromList [ (C 0 0, Herbe)
 
 ---------------------------------------------------------------joueurs-----------------------------------------------------------------------------------------------
 player1 :: Joueur
-player1 = Joueur "Daniel" (JoueurId 1)
+player1 = Joueur "Daniel" (JoueurId 1) 100
 
 player2 :: Joueur
-player2 = Joueur "Yukai" (JoueurId 2)
+player2 = Joueur "Yukai" (JoueurId 2) 100
 
 player3 :: Joueur
-player3 = Joueur "Daniel" (JoueurId 3)
+player3 = Joueur "Daniel" (JoueurId 3) 100
 
 player4 :: Joueur
-player4 = Joueur "Ronaldo" (JoueurId 1)
+player4 = Joueur "Ronaldo" (JoueurId 1) 100
 
 player5 :: Joueur
-player5 = Joueur "Daniel" (JoueurId 2)
+player5 = Joueur "Daniel" (JoueurId 2) 100
 
 playerIlegal :: Joueur
-playerIlegal = Joueur "" (JoueurId 2)
+playerIlegal = Joueur "" (JoueurId 2) 100
 
 -----------------------------------------------------------------batiments------------------------------------------------------------------------------------------
 fac :: Batiment
