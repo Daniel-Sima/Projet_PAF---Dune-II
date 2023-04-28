@@ -50,6 +50,15 @@ listCoordIllegalMemeCoor = [(C 3 0), (C 3 0), (C 1 3)]
 player1 :: Joueur
 player1 = Joueur "0" (JoueurId 0) 100
 
+player1AfterRaffinerie :: Joueur
+player1AfterRaffinerie = Joueur "0" (JoueurId 0) 50
+
+player1AfterUsine :: Joueur
+player1AfterUsine = Joueur "0" (JoueurId 0) 75
+
+player1AfterCentrale :: Joueur
+player1AfterCentrale = Joueur "0" (JoueurId 0) 0
+
 player2 :: Joueur
 player2 = Joueur "1" (JoueurId 1) 100
 
@@ -81,13 +90,22 @@ envResApres :: Environnement
 envResApres = Environnement [player2, player3] carteEx (M.empty) (M.fromList [(BatId 1, qr2), (BatId 2, qr3)])
 
 envRes_raffinerie :: Environnement
-envRes_raffinerie = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, r1)])
+envRes_raffinerie = Environnement [player1AfterRaffinerie, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, r1)])
+
+envRes_raffinerie_destruction :: Environnement
+envRes_raffinerie_destruction = Environnement [player1AfterRaffinerie, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3)])
 
 envRes_usine :: Environnement
-envRes_usine = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, u1)])
+envRes_usine = Environnement [player1AfterUsine, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, u1)])
+
+envRes_usine_destruction :: Environnement
+envRes_usine_destruction = Environnement [player1AfterUsine, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3)])
 
 envRes_centrale :: Environnement
-envRes_centrale = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, c1)])
+envRes_centrale = Environnement [player1AfterCentrale, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, c1)])
+
+envRes_centrale_destruction :: Environnement
+envRes_centrale_destruction = Environnement [player1AfterCentrale, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3)])
 
 
 envSmartSpec = do
@@ -157,7 +175,7 @@ prop_pre_destruction_raffinerie_Spec = do
                 `shouldBe` False
         
         it "returns True because the raffinerie in '(C 3 2)' exists in 'envRes_raffinerie' for 'player1'." $ do
-            prop_pre_destruction_raffinerie envRes_raffinerie (C 3 2) player1
+            prop_pre_destruction_raffinerie envRes_raffinerie (C 3 2) player1AfterRaffinerie
                 `shouldBe` True
         
         it "returns False because the batiment in '(C 0 2)' is not an usine but an QG." $ do
@@ -168,8 +186,8 @@ destruction_raffinerie_Spec = do
     describe "destruction_raffinerie" $ do
 
         it "returns the enviroment which the raffinerie has been removed" $ do
-            destruction_raffinerie envRes_raffinerie (C 3 2) player1 
-                `shouldBe` envRes
+            destruction_raffinerie envRes_raffinerie (C 3 2) player1AfterRaffinerie 
+                `shouldBe` envRes_raffinerie_destruction
 
 prop_post_destruction_raffinerie_Spec = do
     describe "prop_post_destruction_raffinerie" $ do
@@ -209,7 +227,7 @@ prop_pre_destruction_usine_Spec = do
     describe "prop_pre_destruction_usine" $ do
 
         it "returns True because the usine in '(C 4 4)' exists in 'envRes_usine' for 'player1" $ do
-            prop_pre_destruction_usine envRes_usine (C 4 4) player1
+            prop_pre_destruction_usine envRes_usine (C 4 4) player1AfterUsine
                 `shouldBe` True
         
         it "returns False because the batiment in '(C 0 2)' is not an usine but an QG." $ do
@@ -220,14 +238,14 @@ destruction_usine_Spec = do
     describe "destruction_usine" $ do
 
         it "returns the enviroment which the usine has been removed" $ do
-            destruction_usine envRes_usine (C 4 4) player1 
-                `shouldBe` envRes
+            destruction_usine envRes_usine (C 4 4) player1AfterUsine 
+                `shouldBe` envRes_usine_destruction
 
 prop_post_destruction_usine_Spec = do
     describe "prop_post_destruction_usine" $ do
 
         it "returns True because the usine has been removed and the other things not changed " $ do
-            prop_post_destruction_usine envRes_usine (C 4 4) player1
+            prop_post_destruction_usine envRes_usine (C 4 4) player1AfterUsine
                 `shouldBe` True
 
 --------------------------------------------------- Centrale tests -----------------------------------------------------------------------------------------------
@@ -261,25 +279,25 @@ prop_pre_destruction_centrale_Spec = do
     describe "prop_pre_destruction_centrale" $ do
 
         it "returns True because the Centrale in '(C 3 4)' exists in 'envRes_centrale' for 'player1" $ do
-            prop_pre_destruction_centrale envRes_centrale (C 3 4) player1
+            prop_pre_destruction_centrale envRes_centrale (C 3 4) player1AfterCentrale
                 `shouldBe` True
         
         it "returns False because the batiment in '(C 3 0)' is not an usine but an QG." $ do
-            prop_pre_destruction_centrale envRes_centrale (C 3 0) player1
+            prop_pre_destruction_centrale envRes_centrale (C 3 0) player1AfterCentrale
                 `shouldBe` False
 
 destruction_centrale_Spec = do 
     describe "destruction_centrale" $ do
 
         it "returns the enviroment which the centrale has been removed" $ do
-            destruction_centrale envRes_centrale (C 3 4) player1 
-                `shouldBe` envRes
+            destruction_centrale envRes_centrale (C 3 4) player1AfterCentrale
+                `shouldBe` envRes_centrale_destruction
 
 prop_post_destruction_centrale_Spec = do
     describe "prop_post_destruction_centrale" $ do
 
         it "returns True because the centrale has been removed and the other things not changed " $ do
-            prop_post_destruction_centrale envRes_centrale (C 3 4) player1
+            prop_post_destruction_centrale envRes_centrale (C 3 4) player1AfterCentrale
                 `shouldBe` True
 
 
