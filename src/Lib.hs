@@ -625,15 +625,52 @@ verifie_unites  env listCollecteur listCombattant =
     in 
         (eliminer_unites_env env listeEliminer, (List.filer (\(Collecteur uniteIDCollecteur _ _ pvCollecteur _ _) -> pvCollecteur > 0) listCollecteur), (List.filer (\(Combattant uniteIDCombattant _ pvCombattant _ _) -> pvCombattant > 0) listCombattant))
 
+----------------------------------------------------------------deplacer collecteur------------------------------------------------------------------------
+
+-- Fonction qui applique le deplacement d'une etape pour les unites
+deplacer_unites :: Unite -> Coord -> Unite
+deplacer_unites (Unite nom (C x y) proprio) (C xObjectif yObjectif) = 
+    if (abs (x-xObjectif)) > (abs (y-y2)) then 
+        (if (x-xObjectif) > 0 then (Unite nom (C (x-1) y) proprio) 
+        else (Unite nom (C (x+1) y) proprio))
+    else (
+        if (y-yObjectif) > 0 then (Unite nom (C x (y-1)) proprio) 
+        else (Unite nom (C x (y+1)) proprio)
+    )  
+
+-- Fonction qui transforme une listede Collecteur en une liste de UniteID de ces Collecteurs
+listCollecteur_to_listUniteID :: [Collecteur] -> [UniteId]
+listCollecteur_to_listUniteID listeCollecteur = fmap (\(Collecteur uniteIDCollecteur _ _ _ _ _) -> uniteIDCollecteur) listeCollecteur
+
+
+-- Fonction qui va deplacer un Collecteur d'une case selon l'axe qu'il est le plus loin - version Collecteur 
+deplacer_Collecteur_coord :: [Collecteur] -> ([Collecteur], M.Map UniteId Unite)
+deplacer_Collecteur_coord listCollecteurs = 
+    let resListCollecteur = fmap (\Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur -> 
+        case butCollecteur of
+            Deplacer coord -> if (coord /= (ucoord uniteCollecteur)) then (Collecteur uniteIDCollecteur (deplacer_unites uniteCollecteur) cuve pvCollecteur ordresCollecteur butCollecteur) 
+                              else (
+                                if ((length ordresCollecteur) == 0) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien)
+                                else (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur))
+                              )
+            otherwise -> (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur)) listCollecteurs
+    in 
+        
+
 -- Fonction qui applique le deplacement d'une case aux Collecteurs qui ont un ordre de Deplacement  
-deplacer_Collecteur Environnement -> [Collecteur] -> (Environnement, [Collecteur])
+deplacer_Collecteur :: Environnement -> [Collecteur] -> (Environnement, [Collecteur])
+deplacer_Collecteur (Environnement _ _ unites _) listCollecteurs = 
+    let unitesDelacer = fmap (\Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur -> 
+        case butCollecteur of
+            Deplacer coord -> if (coord /= (ucoord uniteCollecteur)) then  uniteCollecteur
+            otherwise -> ) listCollecteurs
 
 
 
 -- faire prop pre etape 
 
 etape :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant] )
-etape (Environnement joueurs carte unites batiments) =  
+etape (Environnement joueurs carte unites batiments) = fmap () unites
 
 
 
