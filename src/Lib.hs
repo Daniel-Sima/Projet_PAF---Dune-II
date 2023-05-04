@@ -58,6 +58,19 @@ module Lib
     get_ListUniteID_Collecteur,
     get_ListUniteID_Combattant,
     verifie_unites,
+    go_x,
+    go_y,
+    deplacer_unite,
+    listCollecteur_to_listUniteID,
+    listCombattant_to_listUnite,
+    deplacer_Collecteur_coord_aux,
+    deplacer_Collecteur_coord,
+    listCombattant_to_listUniteID,
+    listCombattant_to_listUnite,
+    deplacer_Combattant_coord_aux,
+    deplacer_Combattant_coord,
+    deplacer_Unite_Cood,
+    etape,
     Cuve(..),
     Ordre(..),
     Collecteur(..),
@@ -361,7 +374,11 @@ get_nom_batiment :: Batiment -> String
 get_nom_batiment (Batiment nom _ _ _) = nom
 
 getBatIdProprioCoord ::  (M.Map BatId Batiment) -> Coord -> BatId
-getBatIdProprioCoord mapBat coord = List.head (M.keys (M.filter (\x -> (bcoord x) == coord) mapBat))
+getBatIdProprioCoord mapBat coord = 
+    let res = (M.keys (M.filter (\x -> (bcoord x) == coord) mapBat))
+    in 
+        if (List.length res > 0) then List.head res
+        else (BatId (-1))
 
 prop_post_destructionQG :: Environnement -> Joueur -> Bool
 prop_post_destructionQG (Environnement joueursAvant mappAvant unitesAvant batsAvant) player =
@@ -535,11 +552,15 @@ prop_inv_Combattant (Combattant uniID uni pvv ordres but) =
 
 prop_pre_set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
 prop_pre_set_collecteur (Environnement joueurs mapp unites bats) coordUsine player listCollecteurs = 
-    ((get_nom_batiment (May.fromJust (M.lookup (getBatIdProprioCoord bats coordUsine) bats))) == "Usine") &&
-    (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && 
-    (elem player joueurs) &&
-    ((get_player_credit player) >= prixCollecteur) &&
-    (List.all prop_inv_Collecteur listCollecteurs)
+    let res = (M.lookup (getBatIdProprioCoord bats coordUsine) bats)
+    in 
+        (isJust res) &&
+        ((get_nom_batiment (May.fromJust (M.lookup (getBatIdProprioCoord bats coordUsine) bats))) == "Usine") &&
+        (bproprio (May.fromJust res) == jid player) && 
+        (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && 
+        (elem player joueurs) &&
+        ((get_player_credit player) >= prixCollecteur) &&
+        (List.all prop_inv_Collecteur listCollecteurs)
 
 get_uniteID_Collecteur :: Collecteur -> UniteId
 get_uniteID_Collecteur (Collecteur uniteID _ _ _ _ _) = uniteID
@@ -560,7 +581,7 @@ set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> (Environne
 set_collecteur (Environnement joueurs mapp unites bats) coordUsine player listCollecteurs = 
     ((Environnement (reduction_credit_player joueurs player prixCollecteur) mapp (M.insert (UniteId (M.size unites)) (add_collecteur_collection (UniteId (M.size unites)) (Unite "Collecteur" coordUsine (jid player)) listCollecteurs) unites) bats), (listCollecteurs ++ [(Collecteur (UniteId (M.size unites)) (Unite "Collecteur" coordUsine (jid player)) (CuveVide cuveMax) pvCollecteurMax [] Rien)])) 
 
-     :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
+prop_post_set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
 prop_post_set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs =
     let ((Environnement joueursApres mappApres unitesApres batsApres), listCollecteursApres) = set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs
     in ((List.filter (\(Joueur _ idAvant _) -> idAvant /= jid player) joueursAvant) == (List.filter (\(Joueur _ idApres _) -> idApres /= jid player) joueursApres)) &&
@@ -576,11 +597,15 @@ add_conbattant_collection uniteID unite listCombattant = (get_unite_Combattant (
 
 prop_pre_set_combattant :: Environnement -> Coord -> Joueur -> [Combattant] -> Bool
 prop_pre_set_combattant (Environnement joueurs mapp unites bats) coordUsine player listCombattant = 
-    ((get_nom_batiment (May.fromJust (M.lookup (getBatIdProprioCoord bats coordUsine) bats))) == "Usine") &&
-    (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && 
-    (elem player joueurs) &&
-    ((get_player_credit player) >= prixCombattant) &&
-    (List.all prop_inv_Combattant listCombattant)
+    let res = (M.lookup (getBatIdProprioCoord bats coordUsine) bats)
+    in 
+        (isJust res) &&
+        ((get_nom_batiment (May.fromJust res)) == "Usine") &&
+        (bproprio (May.fromJust res) == jid player) && 
+        (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && 
+        (elem player joueurs) &&
+        ((get_player_credit player) >= prixCombattant) &&
+        (List.all prop_inv_Combattant listCombattant)
 
 set_combattant :: Environnement -> Coord -> Joueur -> [Combattant] -> (Environnement, [Combattant])
 set_combattant (Environnement joueurs mapp unites bats) coordUsine player listCombattant = 
@@ -606,63 +631,72 @@ prop_post_set_combattant (Environnement joueursAvant mappAvant unitesAvant batsA
 
 --filterWithKey :: Ord k => (k -> a -> Bool) -> Map k a -> Map k a
 
--- Fonction qui eliminer tous les UniteId doont le pv inferieur à 0 dans Environnement
+-- Fonction qui eliminer tous les UniteId doont le pv inferieur <= 0 dans Environnement
 eliminer_unites_env :: Environnement -> [UniteId] -> Environnement
-eliminer_unites_env (Environnement joueurs mapp unites bats) listUniteID = (Environnement joueurs mapp (M.filterWithKey (\k _ -> not (elem  listUniteID)) unites) bats) 
+eliminer_unites_env (Environnement joueurs mapp unites bats) listUniteID = (Environnement joueurs mapp (M.filterWithKey (\k _ -> not (elem k listUniteID)) unites) bats) 
 
 -- Fonction qui retourne la liste d'UniteId d'une liste de Collecteurs qui ont un pv <= 0
 get_ListUniteID_Collecteur :: [Collecteur] -> [UniteId]
-get_ListUniteID_Collecteur listCollecteurs = fmap (\Collecteur uniteIDCollecteur _ _ pvCollecteur _ _ -> if pvCollecteur <= 0 then uniteIDCollecteur ) listCollecteurs
+get_ListUniteID_Collecteur listCollecteurs = fmap (\(Collecteur uniteIDCollecteur _ _ pvCollecteur _ _) -> if pvCollecteur <= 0 then uniteIDCollecteur else (UniteId (-1))) listCollecteurs
 
 -- Fonction qui retourne la liste d'UniteId d'une liste de Combattant qui ont un pv <= 0
 get_ListUniteID_Combattant :: [Combattant] -> [UniteId]
-get_ListUniteID_Combattant listCombattans = fmap (\Collecteur uniteIDCombattant _ pvCombattant _ _ -> if pvCombattant <= 0 then uniteIDCombattant ) listCombattans
+get_ListUniteID_Combattant listCombattans = fmap (\(Combattant uniteIDCombattant _ pvCombattant _ _) -> if pvCombattant <= 0 then uniteIDCombattant else (UniteId (-1))) listCombattans
 
 -- Fonction qui verifie la vie (PV) des Combattants/Collecteurs dans la partie (Environnement) et les elimine si morts
 verifie_unites :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant]) 
 verifie_unites  env listCollecteur listCombattant = 
     let listeEliminer = (get_ListUniteID_Collecteur listCollecteur) ++ (get_ListUniteID_Combattant listCombattant)
     in 
-        (eliminer_unites_env env listeEliminer, (List.filer (\(Collecteur uniteIDCollecteur _ _ pvCollecteur _ _) -> pvCollecteur > 0) listCollecteur), (List.filer (\(Combattant uniteIDCombattant _ pvCombattant _ _) -> pvCombattant > 0) listCombattant))
+        (eliminer_unites_env env listeEliminer, (List.filter (\(Collecteur uniteIDCollecteur _ _ pvCollecteur _ _) -> pvCollecteur > 0) listCollecteur), (List.filter (\(Combattant uniteIDCombattant _ pvCombattant _ _) -> pvCombattant > 0) listCombattant))
 
 -------------------------------------------------------------------deplacer unite-------------------------------------------------------------------------------------------
 
--- Fonction qui applique le deplacement d'une etape pour les unites
-deplacer_unites :: Environnement -> Unite -> Coord -> Unite
-deplacer_unites (Environnement joueurs mapp unites bats) (Unite nom (C x y) proprio) (C xObjectif yObjectif) = 
-    if (abs (x-xObjectif)) > (abs (y-y2)) then 
-        (if (x-xObjectif) > 0 then (
-            if May.fromJust M.lookup (C (x-1) y) /= Eau then 
-                (Unite nom (C (x-1) y) proprio) 
-                else (
-                    if (y-yObjectif) > 0 then (Unite nom (C x (y-1)) proprio) 
-                    else (Unite nom (C x (y+1)) proprio)
-                ))
-        else (Unite nom (C (x+1) y) proprio))
-    else (
-        if (y-yObjectif) > 0 then (Unite nom (C x (y-1)) proprio) 
-        else (Unite nom (C x (y+1)) proprio)
-    )  
-
-go_x :: Coord -> Coord -> Coord
-go_x (C x y) (C xObjectif yObjectif) = 
+-- Fonction qui se deplace selon l'axe Ouest-Est si non deja bloque
+go_x ::  Coord -> Coord -> Bool -> Carte -> Maybe Coord
+go_x (C x y) (C xObjectif yObjectif) isBlocked (Carte mapp) = 
     if (x-xObjectif) > 0 then (
-            if May.fromJust M.lookup (C (x-1) y) /= Eau then 
-                (Unite nom (C (x-1) y) proprio) 
-                else go_y (C x y) (C xObjectif yObjectif))
-        else (Unite nom (C (x+1) y) proprio)
+        if (May.fromJust (M.lookup (C (x-1) y) mapp)) /= Eau then 
+            Just (C (x-1) y)
+        else (
+            if (isBlocked) then Nothing
+            else go_y (C x y) (C xObjectif yObjectif) True (Carte mapp))) 
+    else (
+        if (May.fromJust (M.lookup (C (x+1) y) mapp)) /= Eau then 
+            Just (C (x+1) y) 
+        else (
+            if (isBlocked) then Nothing
+            else go_y (C x y) (C xObjectif yObjectif) True (Carte mapp)))
 
-go_y :: Coord -> Coord -> Coord
-go_y (C x y) (C xObjectif yObjectif) =
-    if (y-yObjectif) > 0 then (Unite nom (C x (y-1)) proprio) 
-        else (Unite nom (C x (y+1)) proprio)
-
-deplacer_Unite_Cood :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant])
-deplacer_Unite_Cood (Environnement joueurs mapp unites bats) listCollecteurs listeCombattant =
-        let (resListCollecteur, resMapCollecteurs) = deplacer_Collecteur_coord listCollecteurs in
-            let (resListCombattant, resMapCombattant) = deplacer_Combattant_coord listCombattant in
-                ((Environnement joueurs mapp (M.union resMapCollecteurs resMapCombattant) bats))
-
+-- Fonction qui se deplace selon l'axe Nord-Sud si non deja bloque
+go_y :: Coord -> Coord -> Bool -> Carte -> Maybe Coord
+go_y (C x y) (C xObjectif yObjectif) isBlocked (Carte mapp) =
+    if (y-yObjectif) > 0 then (
+        if (May.fromJust (M.lookup (C x (y-1)) mapp)) /= Eau then  
+            Just (C x (y-1)) 
+        else (
+            if (isBlocked) then Nothing
+            else go_x (C x y) (C xObjectif yObjectif) True (Carte mapp))) 
+    else (
+        if (May.fromJust (M.lookup (C x (y+1)) mapp)) /= Eau then 
+            Just (C x (y+1)) 
+        else (
+            if (isBlocked) then Nothing
+            else go_x (C x y) (C xObjectif yObjectif) True (Carte mapp)))
+        
+-- Fonction qui applique le deplacement d'une etape pour une Unite
+deplacer_unite :: Environnement -> Unite -> Coord -> Maybe Unite
+deplacer_unite (Environnement joueurs mapp unites bats) (Unite nom (C x y) proprio) (C xObjectif yObjectif) = 
+    if (abs (x-xObjectif)) > (abs (y-yObjectif)) then (
+        case (go_x (C x y) (C xObjectif yObjectif) False mapp) of 
+            Just coord -> Just (Unite nom coord proprio)
+            Nothing -> Nothing  
+    )
+    else (
+        case (go_y (C x y) (C xObjectif yObjectif) False mapp) of 
+            Just coord -> Just (Unite nom coord proprio)
+            Nothing -> Nothing  
+    )  
 ----------------------------------------------------------------deplacer collecteur------------------------------------------------------------------------
 
 -- Fonction qui transforme une listede Collecteur en une liste de UniteID de ces Collecteurs
@@ -670,20 +704,29 @@ listCollecteur_to_listUniteID :: [Collecteur] -> [UniteId]
 listCollecteur_to_listUniteID listeCollecteur = fmap (\(Collecteur uniteIDCollecteur _ _ _ _ _) -> uniteIDCollecteur) listeCollecteur
 
 -- Fonction qui transforme une listede Collecteur en une liste de Unite de ces Collecteurs
-listCollecteur_to_listUnite :: [Collecteur] -> [UniteId]
+listCollecteur_to_listUnite :: [Collecteur] -> [Unite]
 listCollecteur_to_listUnite listeCollecteur = fmap (\(Collecteur _ unite _ _ _ _) -> unite) listeCollecteur
+
+deplacer_Collecteur_coord_aux :: Environnement -> Collecteur -> Collecteur
+deplacer_Collecteur_coord_aux env (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) = 
+    case butCollecteur of 
+        Deplacer coord ->
+            if (coord /= (ucoord uniteCollecteur)) then (
+                let uniteDep = (deplacer_unite env uniteCollecteur coord) 
+                in 
+                    if not (isJust uniteDep) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur [] Rien)
+                    else (Collecteur uniteIDCollecteur (May.fromJust (deplacer_unite env uniteCollecteur coord)) cuve pvCollecteur ordresCollecteur butCollecteur) 
+            )
+            else (
+                if ((length ordresCollecteur) == 0) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien)
+                else (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur))
+            )
+        otherwise -> (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur)
 
 -- Fonction qui va deplacer un Collecteur d'une case selon l'axe qu'il est le plus loin - version Collecteur 
 deplacer_Collecteur_coord :: Environnement -> [Collecteur] -> ([Collecteur], M.Map UniteId Unite)
 deplacer_Collecteur_coord env listCollecteurs = 
-    let resListCollecteur = fmap (\Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur -> 
-        case butCollecteur of
-            Deplacer coord -> if (coord /= (ucoord uniteCollecteur)) then (Collecteur uniteIDCollecteur (deplacer_unites env uniteCollecteur) cuve pvCollecteur ordresCollecteur butCollecteur) 
-                              else (
-                                if ((length ordresCollecteur) == 0) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien)
-                                else (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur))
-                              )
-            otherwise -> (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur)) listCollecteurs
+    let resListCollecteur = fmap (deplacer_Collecteur_coord_aux env) listCollecteurs   
     in (resListCollecteur, (M.fromList (List.zip (listCollecteur_to_listUniteID resListCollecteur) (listCollecteur_to_listUnite resListCollecteur))))
         
     
@@ -694,27 +737,44 @@ listCombattant_to_listUniteID :: [Combattant] -> [UniteId]
 listCombattant_to_listUniteID listeCombattant = fmap (\(Combattant uniteIDCombattant _ _ _ _) -> uniteIDCombattant) listeCombattant
 
 -- Fonction qui transforme une listede Combattant en une liste de Unite de ces Combattant
-listCombattant_to_listUnite :: [Combattant] -> [UniteId]
+listCombattant_to_listUnite :: [Combattant] -> [Unite]
 listCombattant_to_listUnite listeCombattant = fmap (\(Combattant _ unite _ _ _) -> unite) listeCombattant
+
+deplacer_Combattant_coord_aux :: Environnement -> Combattant -> Combattant
+deplacer_Combattant_coord_aux env (Combattant uniteIDCombattant uniteCombattant pvCombattant ordresCombattant butCombattant) = 
+    case butCombattant of
+            Deplacer coord -> if (coord /= (ucoord uniteCombattant)) then (
+                                let uniteDep = (deplacer_unite env uniteCombattant coord) 
+                                in 
+                                    if not (isJust uniteDep) then Combattant uniteIDCombattant uniteCombattant pvCombattant [] Rien 
+                                    else (Combattant uniteIDCombattant (May.fromJust (deplacer_unite env uniteCombattant coord)) pvCombattant ordresCombattant butCombattant)
+                                ) 
+                              else (
+                                if ((length ordresCombattant) == 0) then (Combattant uniteIDCombattant uniteCombattant pvCombattant ordresCombattant Rien)
+                                else (Combattant uniteIDCombattant uniteCombattant pvCombattant (drop 1 ordresCombattant) (head ordresCombattant))
+                              )
+            otherwise -> (Combattant uniteIDCombattant uniteCombattant pvCombattant ordresCombattant butCombattant)
 
 -- Fonction qui va deplacer un Combattant d'une case selon l'axe qu'il est le plus loin - version Combattant 
 deplacer_Combattant_coord :: Environnement -> [Combattant] -> ([Combattant], M.Map UniteId Unite)
 deplacer_Combattant_coord env listCombattant = 
-    let resListCombattant = fmap (\Combattant uniteIDCombattant uniteCombattant pvCombattant ordresCombattant butCombattant -> 
-        case butCombattant of
-            Deplacer coord -> if (coord /= (ucoord uniteCombattant)) then (Combattant uniteIDCombattant (deplacer_unites env uniteCombattant) pvCombattant ordresCombattant butCombattant) 
-                              else (
-                                if ((length ordresCombattant) == 0) then (Combattant uniteIDCombattant uniteCombattant pvCombattant ordresCombattant Rien)
-                                else (Combattant uniteIDCombattant uniteCombattant cuve pvCombattant (drop 1 ordresCombattant) (head ordresCombattant))
-                              )
-            otherwise -> (Combattant uniteIDCombattant uniteCombattant pvCombattant ordresCombattant butCombattant)) listCombattant
+    let resListCombattant = fmap (deplacer_Combattant_coord_aux env) listCombattant   
     in (resListCombattant, (M.fromList (List.zip (listCombattant_to_listUniteID resListCombattant) (listCombattant_to_listUnite resListCombattant))))
         
 
+-- Fonction qui va deplacer les Unites lors d'une etape si but est de deplacer
+deplacer_Unite_Cood :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant])
+deplacer_Unite_Cood (Environnement joueurs mapp unites bats) listCollecteurs listeCombattant =
+        let (resListCollecteur, resMapCollecteurs) = deplacer_Collecteur_coord (Environnement joueurs mapp unites bats) listCollecteurs in
+            let (resListCombattant, resMapCombattant) = deplacer_Combattant_coord (Environnement joueurs mapp unites bats) listeCombattant in
+                ((Environnement joueurs mapp (M.union resMapCollecteurs resMapCombattant) bats), resListCollecteur, resListCombattant)
+
+
 -- faire prop pre etape 
 
-etape :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant] )
-etape (Environnement joueurs carte unites batiments) = fmap () unites
+etape :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant])
+etape env listCollecteurs listeCombattants  =  
+    deplacer_Unite_Cood env listCollecteurs listeCombattants
 
 
 
