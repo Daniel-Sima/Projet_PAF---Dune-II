@@ -54,6 +54,10 @@ module Lib
     prop_pre_set_combattant,
     prop_post_set_combattant,
     set_combattant,
+    eliminer_unites_env,
+    get_ListUniteID_Collecteur,
+    get_ListUniteID_Combattant,
+    verifie_unites,
     Cuve(..),
     Ordre(..),
     Collecteur(..),
@@ -556,7 +560,7 @@ set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> (Environne
 set_collecteur (Environnement joueurs mapp unites bats) coordUsine player listCollecteurs = 
     ((Environnement (reduction_credit_player joueurs player prixCollecteur) mapp (M.insert (UniteId (M.size unites)) (add_collecteur_collection (UniteId (M.size unites)) (Unite "Collecteur" coordUsine (jid player)) listCollecteurs) unites) bats), (listCollecteurs ++ [(Collecteur (UniteId (M.size unites)) (Unite "Collecteur" coordUsine (jid player)) (CuveVide cuveMax) pvCollecteurMax [] Rien)])) 
 
-prop_post_set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
+     :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
 prop_post_set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs =
     let ((Environnement joueursApres mappApres unitesApres batsApres), listCollecteursApres) = set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs
     in ((List.filter (\(Joueur _ idAvant _) -> idAvant /= jid player) joueursAvant) == (List.filter (\(Joueur _ idApres _) -> idApres /= jid player) joueursApres)) &&
@@ -595,11 +599,42 @@ prop_post_set_combattant (Environnement joueursAvant mappAvant unitesAvant batsA
 -- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
 -- data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId}
 -- data Unite = Unite {uNom :: UniteId, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
+-- data Collecteur = Collecteur {uniteIDCollecteur :: UniteId, uniteCollecteur :: Unite, cuve :: Cuve, pvCollecteur :: Int, ordresCollecteur :: [Ordre], butCollecteur :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
+-- data Combattant = Combattant {uniteIDCombattant :: UniteId, uniteCombatant :: Unite, pvCombattant :: Int, ordresCombattant :: [Ordre], butCombattant :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
 
 -- etape_collecteurs :: [Collecteur] ->  M.Map UniteId Unite 
 
--- etape :: Environnement -> [Collecteur] -> [Combattant] -> Environnement
--- etape (Environnement joueurs carte unites batiments) = 
+--filterWithKey :: Ord k => (k -> a -> Bool) -> Map k a -> Map k a
+
+-- Fonction qui eliminer tous les UniteId doont le pv inferieur à 0 dans Environnement
+eliminer_unites_env :: Environnement -> [UniteId] -> Environnement
+eliminer_unites_env (Environnement joueurs mapp unites bats) listUniteID = (Environnement joueurs mapp (M.filterWithKey (\k _ -> not (elem  listUniteID)) unites) bats) 
+
+-- Fonction qui retourne la liste d'UniteId d'une liste de Collecteurs qui ont un pv <= 0
+get_ListUniteID_Collecteur :: [Collecteur] -> [UniteId]
+get_ListUniteID_Collecteur listCollecteurs = fmap (\Collecteur uniteIDCollecteur _ _ pvCollecteur _ _ -> if pvCollecteur <= 0 then uniteIDCollecteur ) listCollecteurs
+
+-- Fonction qui retourne la liste d'UniteId d'une liste de Combattant qui ont un pv <= 0
+get_ListUniteID_Combattant :: [Combattant] -> [UniteId]
+get_ListUniteID_Combattant listCombattans = fmap (\Collecteur uniteIDCombattant _ pvCombattant _ _ -> if pvCombattant <= 0 then uniteIDCombattant ) listCombattans
+
+-- Fonction qui verifie la vie (PV) des Combattants/Collecteurs dans la partie (Environnement) et les elimine si morts
+verifie_unites :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant]) 
+verifie_unites  env listCollecteur listCombattant = 
+    let listeEliminer = (get_ListUniteID_Collecteur listCollecteur) ++ (get_ListUniteID_Combattant listCombattant)
+    in 
+        (eliminer_unites_env env listeEliminer, (List.filer (\(Collecteur uniteIDCollecteur _ _ pvCollecteur _ _) -> pvCollecteur > 0) listCollecteur), (List.filer (\(Combattant uniteIDCombattant _ pvCombattant _ _) -> pvCombattant > 0) listCombattant))
+
+-- Fonction qui applique le deplacement d'une case aux Collecteurs qui ont un ordre de Deplacement  
+deplacer_Collecteur Environnement -> [Collecteur] -> (Environnement, [Collecteur])
+
+
+
+-- faire prop pre etape 
+
+etape :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant] )
+etape (Environnement joueurs carte unites batiments) =  
+
 
 
 
