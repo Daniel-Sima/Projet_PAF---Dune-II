@@ -40,6 +40,16 @@
   (major1) == 2 && (major2) <  9 || \
   (major1) == 2 && (major2) == 9 && (minor) <= 7)
 #endif /* MIN_VERSION_hspec */
+/* package linear-1.21.10 */
+#ifndef VERSION_linear
+#define VERSION_linear "1.21.10"
+#endif /* VERSION_linear */
+#ifndef MIN_VERSION_linear
+#define MIN_VERSION_linear(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  21 || \
+  (major1) == 1 && (major2) == 21 && (minor) <= 10)
+#endif /* MIN_VERSION_linear */
 /* package paf-projet-0.1.0.0 */
 #ifndef VERSION_paf_projet
 #define VERSION_paf_projet "0.1.0.0"
@@ -50,6 +60,26 @@
   (major1) == 0 && (major2) <  1 || \
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_paf_projet */
+/* package random-1.2.1.1 */
+#ifndef VERSION_random
+#define VERSION_random "1.2.1.1"
+#endif /* VERSION_random */
+#ifndef MIN_VERSION_random
+#define MIN_VERSION_random(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  2 || \
+  (major1) == 1 && (major2) == 2 && (minor) <= 1)
+#endif /* MIN_VERSION_random */
+/* package sdl2-2.5.4.0 */
+#ifndef VERSION_sdl2
+#define VERSION_sdl2 "2.5.4.0"
+#endif /* VERSION_sdl2 */
+#ifndef MIN_VERSION_sdl2
+#define MIN_VERSION_sdl2(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  5 || \
+  (major1) == 2 && (major2) == 5 && (minor) <= 4)
+#endif /* MIN_VERSION_sdl2 */
 
 /* tool gcc-12.2.1 */
 #ifndef TOOL_VERSION_gcc
@@ -143,7 +173,7 @@
 #endif /* MIN_TOOL_VERSION_strip */
 
 #ifndef CURRENT_COMPONENT_ID
-#define CURRENT_COMPONENT_ID "paf-projet-0.1.0.0-7zOJKGh1P8R2RQNk9SMSzW-paf-projet-exe"
+#define CURRENT_COMPONENT_ID "paf-projet-0.1.0.0-AXsU0GlZuFwJ1NVkiARyBR-paf-projet-exe"
 #endif /* CURRENT_COMPONENT_ID */
 #ifndef CURRENT_PACKAGE_VERSION
 #define CURRENT_PACKAGE_VERSION "0.1.0.0"

@@ -25,7 +25,12 @@ source-repository head
 
 library
   exposed-modules:
+      Keyboard
       Lib
+      Model
+      Sprite
+      SpriteMap
+      TextureMap
   other-modules:
       Paths_paf_projet
   hs-source-dirs:
@@ -35,6 +40,9 @@ library
       base >=4.7 && <5
     , containers
     , hspec
+    , linear
+    , random
+    , sdl2
   default-language: Haskell2010
 
 executable paf-projet-exe
@@ -48,7 +56,10 @@ executable paf-projet-exe
       base >=4.7 && <5
     , containers
     , hspec
+    , linear
     , paf-projet
+    , random
+    , sdl2
   default-language: Haskell2010
 
 test-suite paf-projet-test
@@ -67,5 +78,8 @@ test-suite paf-projet-test
       base >=4.7 && <5
     , containers
     , hspec
+    , linear
     , paf-projet
+    , random
+    , sdl2
   default-language: Haskell2010
