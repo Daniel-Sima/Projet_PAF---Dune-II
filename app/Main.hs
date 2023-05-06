@@ -77,35 +77,46 @@ carteEx = Carte (M.fromList ([(C 0 0, Herbe)
                    , (C 4 3, Herbe)
                    , (C 4 4, Herbe)]))
 
+randomNb :: Integer -> [Integer]
+randomNb seed = iterate (\x -> (25210345917 * x + 11) `mod` (2^48)) seed
 
 generateCarte :: Carte
 generateCarte = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y <- [0..16]]
   where
     getTerrain x y
       | x == 17 && y == 8 = Eau -- milieu de la carte
-      | x < 5 && y < 5 = Ressource 10 -- coins
+      | x < 5 && y < 5 = Ressource 10
       | x > 29 && y < 5 = Ressource 10
       | x < 5 && y > 11 = Ressource 10
       | x > 29 && y > 11 = Ressource 10
       | otherwise = Herbe
 
+-- genCarte :: Carte
+-- genCarte = Carte $ M.fromList [((C i j), getCase i j) | i <- [0..34], j <- [0..16]]
+--   where
+--     getCase i j
+--       | r < 40 = let r = ((head (randomNb 42)) `mod` 100) in Ressource 10
+--       | r < 50 = let r = ((head (randomNb 42)) `mod` 100) in Herbe
+--       | otherwise = Eau
+--       where r = ((head (randomNb 42)) `mod` 100)
+        
 genCarte :: Carte
-genCarte = Carte $ M.fromList [((C i j), getCase i j) | i <- [0..34], j <- [0..16]]
+genCarte = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y <- [0..16]]
   where
-    getCase i j
+    getTerrain x y
       | r < 0.2 = Ressource 10
       | r < 0.3 = Eau
       | otherwise = Herbe
       where
-        r = fromIntegral (i * 34 + j) / fromIntegral (34 * 16)
+        r = fromIntegral (randomNb 12345 !! (x * 17 + y)) / fromIntegral (2^48)
 
--- generateCarteR :: Carte
--- generateCarteR = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y <- [0..16]]
---   where
---     getTerrain x y
---       | x `elem` [16, 17, 18, 20, 21, 22, 23, 14] && y `elem` [5, 6, 7, 8, 9, 10, 11] = Eau -- centre
---       | x `elem` [0, 0, 1, 1, 1, 2, 2, 1 34, 34] && y `elem` [0, 16, 0, 16] = Ressource 10 -- coins
---       | otherwise = Herbe
+generateCarteR :: Carte
+generateCarteR = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y <- [0..16]]
+  where
+    getTerrain x y
+      | x `elem` [16, 17, 18] && y `elem` [7, 8, 9] = Eau -- centre
+      | x `elem` [0, 0, 34, 34] && y `elem` [0, 16, 0, 16] = Ressource 10 -- coins
+      | otherwise = Herbe
 
 
 player1 :: Joueur
