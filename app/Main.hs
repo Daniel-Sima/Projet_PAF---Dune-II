@@ -37,7 +37,6 @@ import qualified SDL.Input.Mouse as MO
 
 import System.Random as R
 
-
 import Lib
 
 import qualified Data.Map.Strict as M
@@ -101,14 +100,14 @@ generateCarte = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y 
 --       where r = ((head (randomNb 42)) `mod` 100)
         
 genCarte :: Carte
-genCarte = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y <- [0..16]]
+genCarte = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..30], y <- [0..16]]
   where
     getTerrain x y
       | r < 0.2 = Ressource 10
       | r < 0.3 = Eau
       | otherwise = Herbe
       where
-        r = fromIntegral (randomNb 12345 !! (x * 17 + y)) / fromIntegral (2^48)
+        r = fromIntegral (randomNb 1 !! (x * 17 + y)) / fromIntegral (2^48)
 
 generateCarteR :: Carte
 generateCarteR = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y <- [0..16]]
@@ -129,7 +128,7 @@ player3 :: Joueur
 player3 = Joueur "2" (JoueurId 2) 100
 
 uniteCombattant :: Unite 
-uniteCombattant = Unite "Combattant" (C 4 4) (JoueurId 0) 
+uniteCombattant = Unite "Combattant" (C 4 3) (JoueurId 0) 
 
 uniteEtudiant :: Unite
 uniteEtudiant = Unite "Collecteur" (C 0 3) (JoueurId 1) 
@@ -145,7 +144,7 @@ collecteur_valide :: Collecteur
 collecteur_valide = Collecteur (UniteId 1) uniteEtudiant cuve_valide_pleine 3 [Collecter (C 4 4)] (Deplacer (C 4 2)) 
 
 envRes_combattant_collecteur :: Environnement
-envRes_combattant_collecteur = Environnement [player1, player2, player3] genCarte (M.fromList [((UniteId 2), (get_unite_Combattant combattant_valide)), ((UniteId 1), (get_unite_Collecteur collecteur_valide))]) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, u1)])
+envRes_combattant_collecteur = Environnement [player1, player2, player3] genCarte (M.fromList [((UniteId 2), (get_unite_Combattant combattant_valide)), ((UniteId 1), (get_unite_Collecteur collecteur_valide))]) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, u1), (BatId 4, r1), (BatId 5, c1)])
 
 qr1 :: Batiment
 qr1 = Batiment "QG" 0 (C 0 2) (JoueurId 0)
@@ -158,6 +157,12 @@ qr3 = Batiment "QG" 0 (C 1 3) (JoueurId 2)
 
 u1 :: Batiment
 u1 = Batiment "Usine" 0 (C 4 4) (JoueurId 0)
+
+r1 :: Batiment
+r1 = Batiment "Raffinerie" 0 (C 20 4) (JoueurId 0)
+
+c1 :: Batiment
+c1 = Batiment "Centrale" 0 (C 25 16) (JoueurId 0)
 
 ----------------------------------------------------------------- Carte --------------------------------------------------------------------------------------
 -- | Fonction qui va charger les cases du jeu en fonction des coordonnées et du ID Texture et Sprite
@@ -220,8 +225,8 @@ load_batiments rdr tmap smap listeBats cpt
                 let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 (fromInteger tailleCase) (fromInteger tailleCase)) 
                     smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
                 load_batiments rdr tmap' smap' listeBats (cpt+1)
-            "QG" -> do
-                tmap' <- TM.loadTexture rdr "assets/Usine.bmp" (TextureId textureSpriteID) tmap 
+            "Centrale" -> do
+                tmap' <- TM.loadTexture rdr "assets/Centrale.bmp" (TextureId textureSpriteID) tmap 
                 let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 (fromInteger tailleCase) (fromInteger tailleCase)) 
                     smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
                 load_batiments rdr tmap' smap' listeBats (cpt+1)
@@ -273,7 +278,20 @@ display_unite listeU rdr tmap smap cpt
             textureSpriteID = "U" ++ show id
         S.displaySprite rdr tmap (SM.fetchSprite (SpriteId textureSpriteID) smap)
         display_unite listeU rdr tmap smap (cpt+1)
---------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------- Menu ----------------------------------------------------------------------------------------
+load_menu :: String -> Renderer -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
+load_menu textureSpriteID rdr tmap smap = do
+  tmap' <- TM.loadTexture rdr ("assets/" ++ textureSpriteID ++ ".bmp") (TextureId textureSpriteID) tmap
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 190 200)
+  let smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite 1550 0) smap
+  return (tmap', smap')
+
+
+display_collector_meu :: String -> Renderer -> TextureMap -> SpriteMap -> IO ()
+display_collector_meu textureSpriteID rdr tmap smap = S.displaySprite rdr tmap (SM.fetchSprite (SpriteId textureSpriteID) smap) -- peut etre a changer 
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 getMouseLocation :: Event -> Maybe (V2 Int)
 getMouseLocation event =
@@ -288,21 +306,48 @@ isMouseButtonEvent :: SDL.Event -> Bool
 isMouseButtonEvent SDL.Event { SDL.eventPayload = SDL.MouseButtonEvent _ } = True
 isMouseButtonEvent _ = False
 
--- | Traitement d'un clic de souris
-processMouseEvent :: Int -> Int -> Int -> Int -> SDL.Event -> IO ()
-processMouseEvent xMouse yMouse xPerso yPerso (SDL.Event _ (SDL.MouseButtonEvent eventData)) =
-  if ((xMouse >= xPerso) && (xMouse <= xPerso+100)) && ((yMouse >= yPerso) && (yMouse <= yPerso+100)) then 
-    putStrLn $ "Touche perso avec" ++ show (SDL.mouseButtonEventButton eventData)  
-  else putStrLn $ "PAS touche"
-  -- putStrLn $ "Mouse button " ++ show (SDL.mouseButtonEventButton eventData) ++ " pressed || X mouse test: " <> (show x) <> " Y mouse: " <> (show y)
-processMouseEvent _ _ _ _ _ = return ()
+isMouseButtonEventPressed :: SDL.Event -> Bool
+isMouseButtonEventPressed SDL.Event { SDL.eventPayload = SDL.MouseButtonEvent eventData } =
+    SDL.mouseButtonEventMotion eventData == SDL.Pressed
+isMouseButtonEventPressed _ = False
 
-loadBackground :: Renderer-> FilePath -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
-loadBackground rdr path tmap smap = do
-  tmap' <- TM.loadTexture rdr path (TextureId "background") tmap
-  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId "background") (S.mkArea 0 0 1750 850)
-  let smap' = SM.addSprite (SpriteId "background") sprite smap
-  return (tmap', smap')
+processMouseEventBatiments :: Int -> Int -> [(BatId, Batiment)] -> SDL.Event -> Int -> String
+processMouseEventBatiments xMouse yMouse listeB e@(SDL.Event _ (SDL.MouseButtonEvent eventData)) cpt 
+  | (cpt == length listeB) = "Menu_Default"
+  | otherwise = 
+    let (Batiment bNom _ batCoord _) = snd (listeB !! cpt)
+        (C x y) = batCoord
+        (BatId batId) = fst (listeB !! cpt) in 
+    if ((xMouse >= x*50) && (xMouse <= x*50 + (fromInteger tailleCase))) && ((yMouse >= y*50) && (yMouse <= y*50+(fromInteger tailleCase))) then 
+      if (bNom == "QG") then "QG_Menu" 
+      else if (bNom == "Usine") then "Usine_Menu"
+      else if (bNom == "Raffinerie") then "Raffinerie_Menu"
+      else if (bNom == "Centrale") then "Centrale_Menu"
+      else "Error Menu"
+    else 
+      (processMouseEventBatiments xMouse yMouse listeB e (cpt+1))
+
+-- | Traitement d'un clic de souris
+processMouseEvent :: Int -> Int -> [(UniteId, Unite)] -> [(BatId, Batiment)] -> SDL.Event -> Int -> String
+processMouseEvent xMouse yMouse listeU listB e@(SDL.Event _ (SDL.MouseButtonEvent eventData)) cpt 
+  | (cpt == length listeU) = 
+      processMouseEventBatiments xMouse yMouse listB e 0
+  | otherwise = 
+      let (Unite uNom uCoord _ ) = snd (listeU !! cpt)
+          (UniteId id) = fst (listeU !! cpt)
+          (C x y) = uCoord in 
+      if ((xMouse >= x*50) && (xMouse <= x*50 + (fromInteger tailleCase))) && ((yMouse >= y*50) && (yMouse <= y*50+(fromInteger tailleCase))) then 
+        if (uNom == "Combattant") then "Combattant_Menu"
+        else if (uNom == "Collecteur") then "Collecteur_Menu"
+        else "Error Menu"
+      else  
+        processMouseEvent xMouse yMouse listeU listB e (cpt+1)
+  -- processMouseEvent _ _ _ _ _ = return ()
+  -- putStrLn $ "Mouse button " ++ show (SDL.mouseButtonEventButton eventData) ++ " pressed || X mouse test: " <> (show x) <> " Y mouse: " <> (show y)
+
+
+
+
 
 loadPerso :: Renderer-> FilePath -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
 loadPerso rdr path tmap smap = do
@@ -318,10 +363,17 @@ loadPerso2 rdr path tmap smap = do
   let smap' = SM.addSprite (SpriteId "virus") sprite smap
   return (tmap', smap')
 
+loadBackground :: Renderer -> FilePath -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
+loadBackground rdr path tmap smap = do
+  tmap' <- TM.loadTexture rdr path (TextureId "background") tmap
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId "background") (S.mkArea 0 0 1740 850)
+  let smap' = SM.addSprite (SpriteId "background") sprite smap
+  return (tmap', smap')
+
 main :: IO ()
 main = do
   initializeAll
-  window <- createWindow "Minijeu" $ defaultWindow { windowInitialSize = V2 1740 880 }
+  window <- createWindow "Dune II" $ defaultWindow { windowInitialSize = V2 1740 850 }
   renderer <- createRenderer window (-1) defaultRenderer
   
   let (Environnement joueurs mapp unites batiments) = envRes_combattant_collecteur
@@ -330,9 +382,23 @@ main = do
 
 --   -- chargement de l'image du fond
   (tmap, smap) <- loadBackground renderer "assets/herbe.bmp" TM.createTextureMap SM.createSpriteMap
-  (tmap2, smap2) <- load_carte renderer tmap smap (M.toList (carte genCarte)) 0
-  (tmap3, smap3) <- load_batiments renderer tmap2 smap2 (M.toList batiments) 0
-  (tmap4, smap4) <- load_unites renderer tmap3 smap3 (M.toList unites) 0
+  -- TODO les stocker dans une liste puis les passer par liste a 'load_menu'
+  (tmap1, smap1) <- load_menu "QG_Menu" renderer tmap smap
+  (tmap2, smap2) <- load_menu "QG_Raffinerie" renderer tmap1 smap1
+  (tmap3, smap3) <- load_menu "QG_Usine" renderer tmap2 smap2
+  (tmap4, smap4) <- load_menu "QG_Centrale" renderer tmap3 smap3
+  (tmap5, smap5) <- load_menu "Collecteur_Menu" renderer tmap4 smap4
+
+  (tmap6, smap6) <- load_carte renderer tmap5 smap5 (M.toList (carte genCarte)) 0
+  (tmap7, smap7) <- load_batiments renderer tmap6 smap6 (M.toList batiments) 0
+  (tmap8, smap8) <- load_unites renderer tmap7 smap7 (M.toList unites) 0
+
+  (tmap9, smap9) <- load_menu "Usine_Menu" renderer tmap8 smap8
+  (tmap10, smap10) <- load_menu "Raffinerie_Menu" renderer tmap9 smap9
+  (tmap11, smap11) <- load_menu "Centrale_Menu" renderer tmap10 smap10
+  (tmap12, smap12) <- load_menu "Menu_Default" renderer tmap11 smap11
+  (tmap13, smap13) <- load_menu "Combattant_Menu" renderer tmap12 smap12
+
 --   (tmap1, smap1) <- load 100 0 "CaseRessource" renderer "assets/ressource.bmp" tmap smap
 --   (tmap2, smap2) <- load 0 0 "CaseEau" renderer "assets/eau.bmp" tmap1 smap1
 --   -- chargement du personnage 1
@@ -347,19 +413,20 @@ main = do
   -- initialisation de l'état du clavier
   let kbd = K.createKeyboard
   -- lancement de la gameLoop
-  gameLoop 60 renderer tmap4 smap4 kbd [gameState_perso1, gameState_perso2] 1 envRes_combattant_collecteur
+  gameLoop 60 renderer tmap13 smap13 kbd [gameState_perso1, gameState_perso2] "Menu_Default" envRes_combattant_collecteur
 
-gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> Int -> Environnement -> IO ()
-gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] affichage envRes_combattant_collecteur = do
+gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> String -> Environnement -> IO ()
+gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] menuID envRes_combattant_collecteur = do
   startTime <- time
   --- ensemble des events
   events <- pollEvents
   --- events du clavier
   let kbd' = K.handleEvents events kbd
   --- events souris
-  let mouseButtonEvents = filter isMouseButtonEvent events
+  let mouseButtonEvents = filter isMouseButtonEventPressed events
 
   clear renderer
+
 
   let isCollision = ((fromIntegral (M.persoX gameState_perso1)) + 50 >= (fromIntegral (M.persoX gameState_perso2)) &&
                    (fromIntegral (M.persoX gameState_perso1)) + 50 <= (fromIntegral (M.persoX gameState_perso2)+100) &&
@@ -375,20 +442,17 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] a
   -- when (((fromIntegral (M.persoX gameState_perso1)) + 50 >= (fromIntegral (M.persoX gameState_perso2)) && (fromIntegral (M.persoX gameState_perso1)) + 50 <= (fromIntegral (M.persoX gameState_perso2)+100))  &&
   --   ((fromIntegral (M.persoY gameState_perso1)) + 50 >= (fromIntegral (M.persoY gameState_perso2)) && (fromIntegral (M.persoY gameState_perso1)) + 50 <= (fromIntegral (M.persoY gameState_perso2)+100))) 
   --   $ do (SM.removeSprite (SpriteId "virus") smap)
-  
 
   let (Environnement joueurs mapp unites batiments) = envRes_combattant_collecteur
+   
+
   --- display background
   S.displaySprite renderer tmap (SM.fetchSprite (SpriteId "background") smap) -- peut etre a changer 
   display_carte (M.toList (carte genCarte)) renderer tmap smap 0
   display_batiments (M.toList batiments) renderer tmap smap 0
   display_unite (M.toList unites) renderer tmap smap 0
-
-  --- display perso 1
---   S.displaySprite renderer tmap (S.moveTo (SM.fetchSprite (SpriteId "perso") smap) (fromIntegral (M.persoX gameState_perso1)) (fromIntegral (M.persoY gameState_perso1)))
-  --- display perso 2
---   S.displaySprite renderer tmap (S.moveTo (SM.fetchSprite (SpriteId "virus") smap) (fromIntegral (M.persoX gameState_perso2)) (fromIntegral (M.persoY gameState_perso2)))
-
+  display_collector_meu menuID renderer tmap smap
+  
   --- location de la souris
   test <- MO.getAbsoluteMouseLocation
   let SDL.P (SDL.V2 x1 y1) = test
@@ -398,7 +462,18 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] a
       y = case mousePos of
             SDL.P (SDL.V2 _ y) -> fromIntegral y
  
-  mapM_ (\event -> processMouseEvent x y (M.persoX gameState_perso1) (M.persoY gameState_perso1) event) mouseButtonEvents
+  let res = fmap (\event -> processMouseEvent x y (M.toList unites) (M.toList batiments) event 0) mouseButtonEvents
+  menuID <- if (((length res) > 0) && ((head res) /= "")) then do 
+    putStrLn $ (head res) 
+    return (head res)
+    else do return (menuID)
+
+  --- display perso 1
+--   S.displaySprite renderer tmap (S.moveTo (SM.fetchSprite (SpriteId "perso") smap) (fromIntegral (M.persoX gameState_perso1)) (fromIntegral (M.persoY gameState_perso1)))
+  --- display perso 2
+--   S.displaySprite renderer tmap (S.moveTo (SM.fetchSprite (SpriteId "virus") smap) (fromIntegral (M.persoX gameState_perso2)) (fromIntegral (M.persoY gameState_perso2)))
+
+ 
   ---
   -- putStrLn $ "X perso: " <> (show (M.persoX gameState))
   -- putStrLn $ "Y perso: " <> (show (M.persoY gameState))
@@ -427,4 +502,4 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] a
 
     -- if MO.getAbsoluteMouseLocation
   
-  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap smap kbd' [gameState', gameState_perso2] affichage envRes_combattant_collecteur)
+  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap smap kbd' [gameState', gameState_perso2] menuID envRes_combattant_collecteur)

@@ -40,6 +40,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  cc-options:
+    - -lSDL2
 
 executables:
   paf-projet-exe:
@@ -66,5 +68,6 @@ tests:
     - paf-projet
     - base >= 4.7 && < 5
     - containers
+    
 
 
