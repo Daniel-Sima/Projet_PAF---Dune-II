@@ -71,6 +71,16 @@ module Lib
     deplacer_Combattant_coord,
     deplacer_Unite_Cood,
     etape,
+    get_player_credit,
+    prixRaffinerie,
+    prixCollecteur,
+    prixCombattant,
+    prixUsine,
+    prixCentrale,
+    productionQG,
+    productionCentrale,
+    consommationUsine,
+    consommationRaffinerie,
     Cuve(..),
     Ordre(..),
     Collecteur(..),
@@ -399,7 +409,9 @@ set_raffinerie :: Environnement -> Coord -> Joueur -> Environnement
 set_raffinerie (Environnement joueurs mapp unites bats) coord player = (Environnement (reduction_credit_player joueurs player prixRaffinerie) mapp unites (M.insert (BatId (M.size bats)) (Batiment "Raffinerie" 0 coord (jid player)) bats))
 
 prop_pre_set_raffinerie :: Environnement -> Coord -> Joueur -> Bool
-prop_pre_set_raffinerie (Environnement joueurs mapp unites bats) coord player = (May.fromJust (M.lookup coord (carte mapp)) == Herbe) && (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && (elem player joueurs) && ((get_player_credit player) >= prixRaffinerie)
+prop_pre_set_raffinerie (Environnement joueurs mapp unites bats) coord player = (May.fromJust (M.lookup coord (carte mapp)) == Herbe) 
+    && (prop_inv_Environnement (Environnement joueurs mapp unites bats)) 
+    && (elem player joueurs) && ((get_player_credit player) >= prixRaffinerie)
 
 prop_post_set_raffinerie :: Environnement -> Coord -> Joueur -> Bool
 prop_post_set_raffinerie (Environnement joueursAvant mappAvant unitesAvant batsAvant) coord player = 

@@ -22,10 +22,15 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - containers
-- hspec
 - linear
 - sdl2
+- sdl2-ttf
+- text
 - random
+- mtl
+- ansi-terminal
+- hspec
+- QuickCheck
 
 ghc-options:
 - -Wall
@@ -40,8 +45,6 @@ ghc-options:
 
 library:
   source-dirs: src
-  cc-options:
-    - -lSDL2
 
 executables:
   paf-projet-exe:
@@ -53,8 +56,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - paf-projet
-    - base >= 4.7 && < 5
-    - containers
 
 tests:
   paf-projet-test:
@@ -66,8 +67,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - paf-projet
-    - base >= 4.7 && < 5
-    - containers
     
 
 
