@@ -107,7 +107,7 @@ import Data.Maybe as May
 
 -- Magic numbers: -- 
 creditsDepart :: Int
-creditsDepart = 100
+creditsDepart = 1000
 
 prixCollecteur :: Int
 prixCollecteur = 10
@@ -567,7 +567,7 @@ prop_pre_set_collecteur (Environnement joueurs mapp unites bats) coordUsine play
     let res = (M.lookup (getBatIdProprioCoord bats coordUsine) bats)
     in 
         (isJust res) &&
-        ((get_nom_batiment (May.fromJust (M.lookup (getBatIdProprioCoord bats coordUsine) bats))) == "Usine") &&
+        ((get_nom_batiment (May.fromJust (M.lookup (getBatIdProprioCoord bats coordUsine) bats))) == "Usine") && 
         (bproprio (May.fromJust res) == jid player) && 
         (prop_inv_Environnement (Environnement joueurs mapp unites bats)) && 
         (elem player joueurs) &&
@@ -591,8 +591,11 @@ add_collecteur_collection uniteID unite listCollecteur = (get_unite_Collecteur (
 
 set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> (Environnement, [Collecteur])
 set_collecteur (Environnement joueurs mapp unites bats) coordUsine player listCollecteurs = 
-    ((Environnement (reduction_credit_player joueurs player prixCollecteur) mapp (M.insert (UniteId (M.size unites)) (add_collecteur_collection (UniteId (M.size unites)) (Unite "Collecteur" coordUsine (jid player)) listCollecteurs) unites) bats), (listCollecteurs ++ [(Collecteur (UniteId (M.size unites)) (Unite "Collecteur" coordUsine (jid player)) (CuveVide cuveMax) pvCollecteurMax [] Rien)])) 
+    let (C x y) = coordUsine 
+    in 
+        ((Environnement (reduction_credit_player joueurs player prixCollecteur) mapp (M.insert (UniteId (M.size unites)) (add_collecteur_collection (UniteId (M.size unites)) (Unite "Collecteur" (C x (y+1)) (jid player)) listCollecteurs) unites) bats), (listCollecteurs ++ [(Collecteur (UniteId (M.size unites)) (Unite "Collecteur" (C x (y+1)) (jid player)) (CuveVide cuveMax) pvCollecteurMax [] Rien)])) 
 
+-- TODO ajouter le lieu de spawn du collecteur
 prop_post_set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
 prop_post_set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs =
     let ((Environnement joueursApres mappApres unitesApres batsApres), listCollecteursApres) = set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs
@@ -606,7 +609,7 @@ prop_post_set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsA
 add_conbattant_collection :: UniteId -> Unite -> [Combattant] -> Unite
 add_conbattant_collection uniteID unite listCombattant = (get_unite_Combattant (Combattant uniteID unite pvCollecteurMax [] Rien))
 
-
+-- TODO ajouter le lieu de spawn du combattant
 prop_pre_set_combattant :: Environnement -> Coord -> Joueur -> [Combattant] -> Bool
 prop_pre_set_combattant (Environnement joueurs mapp unites bats) coordUsine player listCombattant = 
     let res = (M.lookup (getBatIdProprioCoord bats coordUsine) bats)
@@ -621,7 +624,9 @@ prop_pre_set_combattant (Environnement joueurs mapp unites bats) coordUsine play
 
 set_combattant :: Environnement -> Coord -> Joueur -> [Combattant] -> (Environnement, [Combattant])
 set_combattant (Environnement joueurs mapp unites bats) coordUsine player listCombattant = 
-    ((Environnement (reduction_credit_player joueurs player prixCombattant) mapp (M.insert (UniteId (M.size unites)) (add_conbattant_collection (UniteId (M.size unites)) (Unite "Combattant" coordUsine (jid player)) listCombattant) unites) bats), (listCombattant ++ [(Combattant (UniteId (M.size unites)) (Unite "Combattant" coordUsine (jid player)) pvCombattantMax [] Rien)])) 
+    let (C x y) = coordUsine 
+    in 
+        ((Environnement (reduction_credit_player joueurs player prixCombattant) mapp (M.insert (UniteId (M.size unites)) (add_conbattant_collection (UniteId (M.size unites)) (Unite "Combattant" (C x (y+1)) (jid player)) listCombattant) unites) bats), (listCombattant ++ [(Combattant (UniteId (M.size unites)) (Unite "Combattant" (C x (y+1)) (jid player)) pvCombattantMax [] Rien)])) 
 
 prop_post_set_combattant :: Environnement -> Coord -> Joueur -> [Combattant] -> Bool
 prop_post_set_combattant (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCombattant =

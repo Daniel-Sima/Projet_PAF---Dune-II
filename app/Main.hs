@@ -126,7 +126,7 @@ generateCarteR = Carte $ M.fromList [((C x y), getTerrain x y) | x <- [0..34], y
 
 
 player1 :: Joueur
-player1 = Joueur "0" (JoueurId 0) 100
+player1 = Joueur "0" (JoueurId 0) 1000
 
 player2 :: Joueur
 player2 = Joueur "1" (JoueurId 1) 100
@@ -303,6 +303,13 @@ load_menu textureSpriteID rdr tmap smap = do
 display_collector_meu :: String -> Renderer -> TextureMap -> SpriteMap -> IO ()
 display_collector_meu textureSpriteID rdr tmap smap = S.displaySprite rdr tmap (SM.fetchSprite (SpriteId textureSpriteID) smap) -- peut etre a changer 
 
+load_decor :: String -> Renderer -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
+load_decor textureSpriteID rdr tmap smap = do
+  tmap' <- TM.loadTexture rdr ("assets/" ++ textureSpriteID ++ ".bmp") (TextureId textureSpriteID) tmap
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 190 200)
+  let smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite 1550 650) smap
+  return (tmap', smap')
+
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -398,13 +405,26 @@ processMouseEventMenus  xMouse yMouse menuID e@(SDL.Event _ (SDL.MouseButtonEven
     otherwise -> menuID
 
 
-processMouseEventAchatBat :: Int -> Int -> String -> SDL.Event -> String
-processMouseEventAchatBat xMouse _ menuID e@(SDL.Event _ (SDL.MouseButtonEvent eventData)) = 
+-- TODO a voir si on peut pas faire mieux
+processMouseEventAchat :: Int -> Int -> String -> SDL.Event -> String
+processMouseEventAchat xMouse _ menuID e@(SDL.Event _ (SDL.MouseButtonEvent eventData)) = 
   case menuID of 
     "QG_Raffinerie" ->  
       if (xMouse < 1740-190) then  "Carte" 
       else ""
-    otherwise -> "" 
+    "QG_Usine" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    "QG_Centrale" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    "Usine_Collecteur" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    "Usine_Combattant" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    otherwise -> ""  
 
 
 
@@ -429,12 +449,20 @@ loadBackground rdr path tmap smap = do
   let smap' = SM.addSprite (SpriteId "background") sprite smap
   return (tmap', smap')
 
-drawWhiteRect :: SDL.Renderer -> IO ()
-drawWhiteRect renderer = do
+drawBlackRect :: SDL.Renderer -> IO ()
+drawBlackRect renderer = do
     SDL.rendererDrawColor renderer SDL.$= SDL.V4 173 140 118 255 
     SDL.fillRect renderer (Just $ SDL.Rectangle (SDL.P $ SDL.V2 1550 200) (SDL.V2 190 650))
 
+drawBlackLIne1 :: SDL.Renderer -> IO ()   
+drawBlackLIne1 renderer = do
+    SDL.rendererDrawColor renderer SDL.$= SDL.V4 0 0 0 255 
+    SDL.fillRect renderer (Just $ SDL.Rectangle (SDL.P $ SDL.V2 1550 200) (SDL.V2 4 650))
 
+drawBlackLIne2 :: SDL.Renderer -> IO ()   
+drawBlackLIne2 renderer = do
+    SDL.rendererDrawColor renderer SDL.$= SDL.V4 0 0 0 255 
+    SDL.fillRect renderer (Just $ SDL.Rectangle (SDL.P $ SDL.V2 1736 200) (SDL.V2 4 650))
 -----------------------------------------------------------------------------------------------------------
 -------------------------------------------------- Main ---------------------------------------------------
 -----------------------------------------------------------------------------------------------------------
@@ -452,7 +480,6 @@ main = do
   else error "Mauvaise generation de carte"
 
   let (Environnement joueurs mapp unites batiments) = environnement
-
 
 
 --   -- chargement de l'image du fond
@@ -475,6 +502,7 @@ main = do
   (tmap13, smap13) <- load_menu "Combattant_Menu" renderer tmap12 smap12
   (tmap14, smap14) <- load_menu "Usine_Combattant" renderer tmap13 smap13
   (tmap15, smap15) <- load_menu "Usine_Collecteur" renderer tmap14 smap14
+  (tmap16, smap16) <- load_decor "Decor" renderer tmap15 smap15
 
 
 --   (tmap1, smap1) <- load 100 0 "CaseRessource" renderer "assets/ressource.bmp" tmap smap
@@ -495,10 +523,10 @@ main = do
   Font.initialize
   
   
-  gameLoop 60 renderer tmap15 smap15 kbd [gameState_perso1, gameState_perso2] "Menu_Default" environnement
+  gameLoop 60 renderer tmap16 smap16 kbd [gameState_perso1, gameState_perso2] "Menu_Default" environnement [] []
 
-gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> String -> Environnement -> IO ()
-gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] menuID envRes_combattant_collecteur = do
+gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> String -> Environnement -> [Collecteur] -> [Combattant] -> IO ()
+gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] menuID envRes_combattant_collecteur listeCollecteurs listeCombattants = do
   startTime <- time
   --- ensemble des events
   events <- pollEvents
@@ -529,47 +557,51 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
    
 
  
-
-  ---- affichage credits
-  drawWhiteRect renderer
-  font <- Font.load "arial.ttf" 24
-  white <- pure $ V4 255 255 255 255 -- blanc
-  surface <- Font.solid font white (DT.pack ("Credits: " <> (show (get_player_credit (head joueurs))))) 
-  surfaceTexture <- createTextureFromSurface renderer surface
-  copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+25) 250) (V2 100 50))
-  if (menuID  == "QG_Raffinerie") then do
-    surface <- Font.solid font white (DT.pack ("Prix raffinerie: " <> (show prixRaffinerie))) 
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+25) 350) (V2 100 50))
-    pure ()
-  else if (menuID  == "QG_Usine") then do 
-    surface <- Font.solid font white (DT.pack ("Prix usine: " <> (show prixUsine))) 
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+25) 350) (V2 100 50))
-    pure ()
-  else if (menuID  == "QG_Centrale") then do 
-    surface <- Font.solid font white (DT.pack ("Prix centrale: " <> (show prixCentrale))) 
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+25) 350) (V2 100 50))
-    pure ()
-  else if (menuID  == "Usine_Combattant") then do 
-    surface <- Font.solid font white (DT.pack ("Prix combattant: " <> (show prixCombattant))) 
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+25) 350) (V2 150 50))
-    pure ()
-  else if (menuID  == "Usine_Collecteur") then do 
-    surface <- Font.solid font white (DT.pack ("Prix collecteur: " <> (show prixCollecteur))) 
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+25) 350) (V2 150 50))
-    pure ()
-  else pure ()
-
-   --- display background
+ --- display background
   S.displaySprite renderer tmap (SM.fetchSprite (SpriteId "background") smap) -- peut etre a changer 
   display_carte (M.toList (carte mapp)) renderer tmap smap 0
   display_unite (M.toList unites) renderer tmap smap 0
   display_collector_meu menuID renderer tmap smap
   display_batiments (M.toList batiments) renderer tmap smap 0
+  
+  ---- affichage credits
+  drawBlackRect renderer
+  font <- Font.load "04B_30__.TTF" 24
+  white <- pure $ V4 255 255 255 255 -- blanc
+  surface <- Font.solid font white (DT.pack ("Credits:" <> (show (get_player_credit (head joueurs))))) 
+  surfaceTexture <- createTextureFromSurface renderer surface
+  copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 250) (V2 175 50))
+  if (menuID  == "QG_Raffinerie") then do
+    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixRaffinerie) ))
+    surfaceTexture <- createTextureFromSurface renderer surface
+    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+    pure ()
+  else if (menuID  == "QG_Usine") then do 
+    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixUsine))) 
+    surfaceTexture <- createTextureFromSurface renderer surface
+    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+    pure ()
+  else if (menuID  == "QG_Centrale") then do 
+    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCentrale))) 
+    surfaceTexture <- createTextureFromSurface renderer surface
+    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+    pure ()
+  else if (menuID  == "Usine_Combattant") then do 
+    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCombattant))) 
+    surfaceTexture <- createTextureFromSurface renderer surface
+    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+    pure ()
+  else if (menuID  == "Usine_Collecteur") then do 
+    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCollecteur))) 
+    surfaceTexture <- createTextureFromSurface renderer surface
+    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+    pure ()
+  else pure ()
+
+  display_collector_meu "Decor" renderer tmap smap
+  drawBlackLIne1 renderer -- ligne menu gauche
+  drawBlackLIne2 renderer -- ligne menu droite
+
   
 
   --- location de la souris
@@ -591,9 +623,10 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
 
 
   let res = fmap (\event -> processMouseEvent x y (M.toList unites) (M.toList batiments) event 0) mouseButtonEvents
-  menuID <- if (((length res) > 0) && ((head res) /= "") && (menuID /= "QG_Raffinerie")) then do 
-    putStrLn $ (head res) 
-    return (head res)
+  menuID <- if (((length res) > 0) && ((head res) /= "") && (menuID /= "QG_Raffinerie") && (menuID /= "QG_Usine") && 
+    (menuID /= "QG_Centrale") && (menuID /= "Usine_Collecteur") && (menuID /= "Usine_Combattant")) then do 
+      putStrLn $ (head res) 
+      return (head res)
     else do return (menuID)
 
   menuID <- if ((menuID == "Menu_Default") || (menuID == "Raffinerie_Menu") || (menuID == "Centrale_Menu")) then return menuID
@@ -623,21 +656,59 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
   
 
   --- Achats Batiments
-  envRes_combattant_collecteur <- if (menuID  == "QG_Raffinerie") then do
-      let res3 = fmap (\event -> processMouseEventAchatBat x y "QG_Raffinerie" event) mouseButtonEvents 
+  (envRes_combattant_collecteur, menuID) <- if (menuID  == "QG_Raffinerie") then do
+      let res3 = fmap (\event -> processMouseEventAchat x y "QG_Raffinerie" event) mouseButtonEvents 
       if (((length res3) > 0) && (head res3) == "Carte") then do 
         if (prop_pre_set_raffinerie envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs)) then do 
           let resEnv = (set_raffinerie envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs)) 
-          return resEnv
-        else return envRes_combattant_collecteur
-      else return envRes_combattant_collecteur
-    else return envRes_combattant_collecteur
+          return (resEnv, "Menu_Default")
+        else return (envRes_combattant_collecteur, "Menu_Default")
+      else return (envRes_combattant_collecteur, menuID)
+    else if (menuID  == "QG_Usine") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "QG_Usine" event) mouseButtonEvents 
+      if (((length res3) > 0) && (head res3) == "Carte") then do 
+        if (prop_pre_set_usine envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs)) then do
+          let resEnv = (set_usine envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs)) 
+          return (resEnv, "Menu_Default")  
+        else return (envRes_combattant_collecteur, "Menu_Default")
+      else return (envRes_combattant_collecteur, menuID)
+    else if (menuID  == "QG_Centrale") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "QG_Centrale" event) mouseButtonEvents 
+      if (((length res3) > 0) && (head res3) == "Carte") then do 
+        if (prop_pre_set_centrale envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs)) then do
+          let resEnv = (set_centrale envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs)) 
+          return (resEnv, "Menu_Default")
+        else return (envRes_combattant_collecteur, "Menu_Default")
+      else return (envRes_combattant_collecteur, menuID)
+    else return (envRes_combattant_collecteur, menuID)
 
-  let (Environnement _ _ _ batimentsApres) = envRes_combattant_collecteur 
+  -- TODO voir pour utiliser un Either listeCollecteurs listeCombattants
+  (envRes_combattant_collecteur, listeCollecteurs, menuID) <- if (menuID  == "Usine_Collecteur") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "Usine_Collecteur" event) mouseButtonEvents 
+      if (((length res3) > 0) && (head res3) == "Carte") then do 
+        if (prop_pre_set_collecteur envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs) listeCollecteurs) then do
+          let (resEnv, resListeCollecteurs) = (set_collecteur envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs) listeCollecteurs) 
+          return (resEnv, resListeCollecteurs, "Menu_Default")   
+        else return (envRes_combattant_collecteur, listeCollecteurs, "Menu_Default")
+      else return (envRes_combattant_collecteur, listeCollecteurs, menuID)
+    else return (envRes_combattant_collecteur, listeCollecteurs, menuID)
+
+
+  (envRes_combattant_collecteur, listeCombattants, menuID) <- if (menuID  == "Usine_Combattant") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "Usine_Combattant" event) mouseButtonEvents 
+      if (((length res3) > 0) && (head res3) == "Carte") then do 
+        if (prop_pre_set_combattant envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs) listeCombattants) then do
+          let (resEnv, resListeCombattants) = (set_combattant envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (head joueurs) listeCombattants) 
+          return (resEnv, resListeCombattants, "Menu_Default")   
+        else return (envRes_combattant_collecteur, listeCombattants, "Menu_Default")
+      else return (envRes_combattant_collecteur, listeCombattants, menuID)
+    else return (envRes_combattant_collecteur, listeCombattants, menuID)
+
+  let (Environnement _ _ unitesApres batimentsApres) = envRes_combattant_collecteur -- nouveau
   let bats = (M.toList batimentsApres)
+  let units = (M.toList unitesApres)
 
-  menuID <- if (length bats /= length batiments) then return "Menu_Default" else return menuID
-
+  -- A voir si sa sert
   let tmap2 = tmap
       smap2 = smap
 
@@ -653,11 +724,10 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
 
   (tmap2', smap2') <- if (length bats /= length batiments) 
                     then load_batiments renderer tmap smap [bats !! ((length bats) - 1)] 0
+                    else if (length units /= length unites) then load_unites renderer tmap smap [units !! ((length units) - 1)] 0 -- voir pour last
                     else return (tmap2, smap2)
-
-  if (length bats /= length batiments) then do putStrLn $ "yes " ++ "ICI: " ++ menuID
-  else return ()
-    
+  
+ 
   -- S.displaySprite renderer tmap2 (SM.fetchSprite (SpriteId "B6") smap2)
   -- (tmap2, smap2) <- if (length bats /= length batiments) then do return (load_batiments renderer tmap smap [bats !! ((length bats) - 1)] 0) else return (tmap, smap)
 
@@ -717,4 +787,4 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
 
     -- if MO.getAbsoluteMouseLocation
   
-  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap2' smap2' kbd' [gameState', gameState_perso2] menuID envRes_combattant_collecteur)
+  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap2' smap2' kbd' [gameState', gameState_perso2] menuID envRes_combattant_collecteur listeCollecteurs listeCombattants)
