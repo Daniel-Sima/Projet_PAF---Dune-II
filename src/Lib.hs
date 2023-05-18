@@ -786,7 +786,38 @@ deplacer_Unite_Cood (Environnement joueurs mapp unites bats) listCollecteurs lis
             let (resListCombattant, resMapCombattant) = deplacer_Combattant_coord (Environnement joueurs mapp unites bats) listeCombattant in
                 ((Environnement joueurs mapp (M.union resMapCollecteurs resMapCombattant) bats), resListCollecteur, resListCombattant)
 
+-----------------------------------------------------collecter-------------------------------------------------------------------------------------------------------------
+-- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
+-- data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId}
+-- data Unite = Unite {uNom :: UniteId, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
+-- data Collecteur = Collecteur {uniteIDCollecteur :: UniteId, uniteCollecteur :: Unite, cuve :: Cuve, pvCollecteur :: Int, ordresCollecteur :: [Ordre], butCollecteur :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
+-- data Combattant = Combattant {uniteIDCombattant :: UniteId, uniteCombatant :: Unite, pvCombattant :: Int, ordresCombattant :: [Ordre], butCombattant :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
 
+collecter_unite :: Environnement -> Unite -> Coord -> (Maybe Unite, Environnement)
+collecter_unite env unite cord =
+    
+
+--si le collecteur n'est pas dans destination bouge le, sinon collecter
+collecter_coord_aux :: Environnement -> Collecteur -> Collecteur
+collecter_coord_aux env (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) = 
+    case butCollecteur of 
+        Collecter coord ->
+            if (coord /= (ucoord uniteCollecteur)) then (
+                let uniteDep = (deplacer_unite env uniteCollecteur coord) 
+                in 
+                    if not (isJust uniteDep) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur [] Rien)
+                    else (Collecteur uniteIDCollecteur (May.fromJust (deplacer_unite env uniteCollecteur coord)) cuve pvCollecteur ordresCollecteur butCollecteur) 
+            )
+            else (
+                let uniteCollec = (collecter_unite env uniteCollecteur coord)
+                in
+                --if ((length ordresCollecteur) == 0) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien)
+                --else (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur))
+            )
+        otherwise -> (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur)
+
+
+-----------------------------------------------------étape--------------------------------------------------------------------------------------------------------------
 -- faire prop pre etape 
 
 etape :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant])
