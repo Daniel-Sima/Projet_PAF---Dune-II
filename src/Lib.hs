@@ -522,7 +522,20 @@ prop_inv_Cuve :: Cuve -> Bool
 prop_inv_Cuve (Cuve qty cap) = 0 < qty && qty < cap
 prop_inv_Cuve (CuveVide cap) = cap > 0
 prop_inv_Cuve (CuvePleine cap) = cap > 0
-  
+
+capacite :: Cuve -> Integer
+capacite (Cuve _ c) = c
+capacite (CuveVide c) = c
+capacite (CuvePleine c) = c
+
+-- changer l'état d'une cuve (pas nouvelle cuve)
+
+changeCuve :: Cuve -> Integer -> Cuve
+changeCuve cu q
+    | q == 0 = CuveVide (capacite cu) 
+    | q == capacite cu = CuvePleine (capacite cu)
+    | otherwise  = Cuve (capacite cu) q 
+
 data Ordre =
     Rien 
     | Collecter Coord
@@ -786,20 +799,48 @@ deplacer_Unite_Cood (Environnement joueurs mapp unites bats) listCollecteurs lis
             let (resListCombattant, resMapCombattant) = deplacer_Combattant_coord (Environnement joueurs mapp unites bats) listeCombattant in
                 ((Environnement joueurs mapp (M.union resMapCollecteurs resMapCombattant) bats), resListCollecteur, resListCombattant)
 
+
+
 -----------------------------------------------------collecter-------------------------------------------------------------------------------------------------------------
 -- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
 -- data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId}
 -- data Unite = Unite {uNom :: UniteId, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
 -- data Collecteur = Collecteur {uniteIDCollecteur :: UniteId, uniteCollecteur :: Unite, cuve :: Cuve, pvCollecteur :: Int, ordresCollecteur :: [Ordre], butCollecteur :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
 -- data Combattant = Combattant {uniteIDCombattant :: UniteId, uniteCombatant :: Unite, pvCombattant :: Int, ordresCombattant :: [Ordre], butCombattant :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
+-- data Coord = C {cx :: Int ,cy :: Int} deriving (Show, Eq, Ord)
 
-collecter_unite :: Environnement -> Unite -> Coord -> (Maybe Unite, Environnement)
-collecter_unite env unite cord =
+-- data Terrain = Herbe
+--     | Ressource Int     
+--     | Eau
+--     deriving (Show, Eq, Ord)
+
+        
+-- newtype Carte = Carte {carte :: M.Map Coord Terrain } deriving (Show, Eq, Ord)
+
+-- data Cuve =
+--   Cuve Integer Integer
+--   | CuvePleine Integer
+--   | CuveVide Integer
+--   deriving (Show, Eq, Ord)
+
+collecter_unite :: Environnement -> Collecteur -> Coord -> (Maybe Collecteur, Maybe Environnement)
+collecter_unite (Environnement joueurs (Carte mapp) unites bat) (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) coord = 
+    if (May.fromJust (M.lookup coord mapp)) /= Ressource x then  
+        if (x>0) then 
+            case cuve of 
+                CuvePleine max -> (Nothing, Nothing)
+                CuveVide max -> let (_, new_carte) = collecteCase coord 1 (Carte mapp) in
+                    (Just (Collecteur uniteIDCollecteur uniteCollecteur (changeCuve cuve 1) pvCollecteur ordresCollecteur butCollecteur)
+                        , Just (Environnement joueurs new_carte unites bat))
+                Cuve q max -> let (_, new_carte) = collecteCase coord 1 (Carte mapp) in
+                    (Just (Collecteur uniteIDCollecteur uniteCollecteur (changeCuve cuve (q+1)) pvCollecteur ordresCollecteur butCollecteur)
+                        , Just (Environnement joueurs new_carte unites bat))
+
     
 
 --si le collecteur n'est pas dans destination bouge le, sinon collecter
-collecter_coord_aux :: Environnement -> Collecteur -> Collecteur
-collecter_coord_aux env (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) = 
+collecter_coord_aux :: Environnement -> Collecteur -> (Collecteur, Environnement)
+collecter_coord_aux env collecteur@(Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) = 
     case butCollecteur of 
         Collecter coord ->
             if (coord /= (ucoord uniteCollecteur)) then (
@@ -809,14 +850,23 @@ collecter_coord_aux env (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCol
                     else (Collecteur uniteIDCollecteur (May.fromJust (deplacer_unite env uniteCollecteur coord)) cuve pvCollecteur ordresCollecteur butCollecteur) 
             )
             else (
-                let uniteCollec = (collecter_unite env uniteCollecteur coord)
+                
+                let (res_collecteur, res_env) = (collecter_unite env uniteCollecteur collecteur coord)
                 in
-                --if ((length ordresCollecteur) == 0) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien)
-                --else (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur))
+                    if ((isJust res_collecteur) && (isJust res_env)) then
+                        (May.fromJust res_collecteur, May.fromJust res_env)
+                    else 
+                        if ((length ordresCollecteur) == 0) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien)
+                        else (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur))
             )
         otherwise -> (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur)
 
-
+-- Fonction qui va deplacer un Collecteur d'une case selon l'axe qu'il est le plus loin - version Collecteur 
+collecter_Collecteur_coord :: Environnement -> [Collecteur] -> ([Collecteur], M.Map UniteId Unite)
+collecter_Collecteur_coord env listCollecteurs = 
+    let resListCollecteur = fmap (deplacer_Collecteur_coord_aux env) listCollecteurs   
+    in (resListCollecteur, (M.fromList (List.zip (listCollecteur_to_listUniteID resListCollecteur) (listCollecteur_to_listUnite resListCollecteur))))
+        
 -----------------------------------------------------étape--------------------------------------------------------------------------------------------------------------
 -- faire prop pre etape 
 
