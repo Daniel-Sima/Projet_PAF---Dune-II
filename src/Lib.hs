@@ -823,6 +823,7 @@ deplacer_Unite_Cood (Environnement joueurs mapp unites bats) listCollecteurs lis
 --   | CuveVide Integer
 --   deriving (Show, Eq, Ord)
 
+--fonction pour collecter
 collecter_unite :: Environnement -> Collecteur -> Coord -> (Maybe Collecteur, Maybe Environnement)
 collecter_unite (Environnement joueurs (Carte mapp) unites bat) (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) coord = 
     if (May.fromJust (M.lookup coord mapp)) /= Ressource x then  
@@ -861,11 +862,25 @@ collecter_coord_aux env collecteur@(Collecteur uniteIDCollecteur uniteCollecteur
             )
         otherwise -> (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur)
 
--- Fonction qui va deplacer un Collecteur d'une case selon l'axe qu'il est le plus loin - version Collecteur 
-collecter_Collecteur_coord :: Environnement -> [Collecteur] -> ([Collecteur], M.Map UniteId Unite)
-collecter_Collecteur_coord env listCollecteurs = 
-    let resListCollecteur = fmap (deplacer_Collecteur_coord_aux env) listCollecteurs   
-    in (resListCollecteur, (M.fromList (List.zip (listCollecteur_to_listUniteID resListCollecteur) (listCollecteur_to_listUnite resListCollecteur))))
+--fonction pour parcourir la liste collecteur et combatants
+parcours_collecter_coord_aux :: Environnement -> [Collecteur] -> [Collecteur] -> ([Collecteur], Environnement)
+parcours_collecter_coord_aux env listCollecteur listCollecteurRes = 
+    if (List.length listCollecteur) > 1 then
+        (let (res_collecteur, res_env) = collecter_coord_aux env (List.nth listCollecteur) in
+            parcours_collecter_coord_aux res_env (List.drop 1 listCollecteur) (listCollecteurRes++[res_collecteur]))
+    else 
+        (let (res_collecteur, res_env) = collecter_coord_aux env (List.nth listCollecteur) in
+            (listCollecteurRes++[res_collecteur], res_env)
+        )
+
+
+--fonction pour gerer la nouvelle list collecteurs et nouvelle env
+collecter_Collecteur_coord :: Environnement -> [Collecteur] -> [Combattant] -> ([Collecteur], Environnement)
+collecter_Collecteur_coord env listCollecteurs listCombattans = 
+    let (resListCollecteur, (Environnement joueurs mapp unites bats)) = parcours_collecter_coord_aux env listCollecteurs [] in
+        let resMapCollecteur =  (M.fromList (List.zip (listCollecteur_to_listUniteID resListCollecteur) (listCollecteur_to_listUnite resListCollecteur))) in
+            let resMapCombattant = (M.fromList (List.zip (listCombattant_to_listUniteID listCombattans) (listCombattant_to_listUnite listCombattans))) in
+    in (resListCollecteur, (Environnement joueurs mapp (M.union resMapCollecteurs resMapCombattant) bats))
         
 -----------------------------------------------------étape--------------------------------------------------------------------------------------------------------------
 -- faire prop pre etape 
