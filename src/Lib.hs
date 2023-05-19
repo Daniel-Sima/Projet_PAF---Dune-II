@@ -882,6 +882,33 @@ collecter_Collecteur_coord env listCollecteurs listCombattans =
             let resMapCombattant = (M.fromList (List.zip (listCombattant_to_listUniteID listCombattans) (listCombattant_to_listUnite listCombattans))) in
     in (resListCollecteur, (Environnement joueurs mapp (M.union resMapCollecteurs resMapCombattant) bats))
         
+
+-----------------------------------------------------patrouiller-------------------------------------------------------------------------------------------------------
+--si le collecteur n'est pas dans destination bouge le, sinon collecter
+patrouiller_coord_aux :: Environnement -> Combattant -> (Combattant, Environnement)
+patrouiller_coord_aux env (Combattant uniteIDCombattant uniteCombattant pvCombattant ordresCombattant butCombattant) = 
+    case butCombattant of 
+        Patrouiller coord1 coord2 ->
+            if (coord /= (ucoord uniteCollecteur)) then (
+                let uniteDep = (deplacer_unite env uniteCollecteur coord) 
+                in 
+                    if not (isJust uniteDep) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur [] Rien)
+                    else (Collecteur uniteIDCollecteur (May.fromJust (deplacer_unite env uniteCollecteur coord)) cuve pvCollecteur ordresCollecteur butCollecteur) 
+            )
+            else (
+                
+                let (res_collecteur, res_env) = (collecter_unite env uniteCollecteur collecteur coord)
+                in
+                    if ((isJust res_collecteur) && (isJust res_env)) then
+                        (May.fromJust res_collecteur, May.fromJust res_env)
+                    else 
+                        if ((length ordresCollecteur) == 0) then (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien)
+                        else (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur))
+            )
+        otherwise -> (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur)
+
+
+
 -----------------------------------------------------étape--------------------------------------------------------------------------------------------------------------
 -- faire prop pre etape 
 
