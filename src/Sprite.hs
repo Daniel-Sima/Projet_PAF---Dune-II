@@ -17,6 +17,8 @@ import qualified TextureMap as TM
 
 import qualified Debug.Trace as T
 
+import qualified SDL
+import Control.Monad.IO.Class (liftIO)
 
 type Area = Rectangle CInt
 
