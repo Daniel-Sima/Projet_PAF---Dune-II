@@ -42,6 +42,8 @@ import Lib
 
 import qualified Data.Map.Strict as M
 
+import qualified Data.Map as MapData
+
 import qualified Data.List as List
 
 import SDL.Font 
@@ -224,24 +226,57 @@ load_batiments rdr tmap smap listeBats cpt
             textureSpriteID = "B" ++ (show batId) 
         case bNom of  
             "QG" -> do
-                tmap' <- TM.loadTexture rdr "assets/QG.bmp" (TextureId textureSpriteID) tmap 
+                tmap' <- if (M.member (TextureId textureSpriteID) tmap) 
+                  then do
+                    let res = M.delete (TextureId textureSpriteID) tmap
+                    TM.loadTexture rdr "assets/QG.bmp" (TextureId textureSpriteID) res 
+                  else 
+                    TM.loadTexture rdr "assets/QG.bmp" (TextureId textureSpriteID) tmap 
                 let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 (fromInteger tailleCase) (fromInteger tailleCase)) 
-                    smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
+                    smap' = if (M.member (SpriteId textureSpriteID) smap) then do
+                      SM.changeSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap
+                      else 
+                        SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
                 load_batiments rdr tmap' smap' listeBats (cpt+1)
             "Raffinerie" ->  do
-                tmap' <- TM.loadTexture rdr "assets/Raffinerie.bmp" (TextureId textureSpriteID) tmap 
+                tmap' <- if (M.member (TextureId textureSpriteID) tmap) 
+                then do
+                  let res = M.delete (TextureId textureSpriteID) tmap
+                  TM.loadTexture rdr "assets/Raffinerie.bmp" (TextureId textureSpriteID) res 
+                else 
+                  TM.loadTexture rdr "assets/Raffinerie.bmp" (TextureId textureSpriteID) tmap 
                 let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 (fromInteger tailleCase) (fromInteger tailleCase)) 
-                    smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
+                    smap' = if (M.member (SpriteId textureSpriteID) smap) then do
+                      SM.changeSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap
+                      else 
+                        SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
                 load_batiments rdr tmap' smap' listeBats (cpt+1)
             "Usine" -> do
-                tmap' <- TM.loadTexture rdr "assets/Usine.bmp" (TextureId textureSpriteID) tmap 
+                tmap' <- if (M.member (TextureId textureSpriteID) tmap) 
+                  then do  
+                    let res = M.delete (TextureId textureSpriteID) tmap
+                    -- if (M.member (TextureId textureSpriteID) tmap) then error "touujours dedans" else error "okkkk"
+                    TM.loadTexture rdr "assets/Usine.bmp" (TextureId textureSpriteID) res 
+                  else 
+                    TM.loadTexture rdr "assets/Usine.bmp" (TextureId textureSpriteID) tmap 
                 let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 (fromInteger tailleCase) (fromInteger tailleCase)) 
-                    smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
+                    smap' = if (M.member (SpriteId textureSpriteID) smap) then do 
+                        SM.changeSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap
+                        else 
+                          SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
                 load_batiments rdr tmap' smap' listeBats (cpt+1)
             "Centrale" -> do
-                tmap' <- TM.loadTexture rdr "assets/Centrale.bmp" (TextureId textureSpriteID) tmap 
+                tmap' <- if (M.member (TextureId textureSpriteID) tmap) 
+                  then do
+                    let res = M.delete (TextureId textureSpriteID) tmap
+                    TM.loadTexture rdr "assets/Centrale.bmp" (TextureId textureSpriteID) res 
+                  else 
+                    TM.loadTexture rdr "assets/Centrale.bmp" (TextureId textureSpriteID) tmap 
                 let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId textureSpriteID) (S.mkArea 0 0 (fromInteger tailleCase) (fromInteger tailleCase)) 
-                    smap' = SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
+                    smap' = if (M.member (SpriteId textureSpriteID) smap) then do
+                      SM.changeSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap
+                      else 
+                        SM.addSprite (SpriteId textureSpriteID) (S.moveTo sprite ((fromIntegral x)*(fromInteger tailleCase)) ((fromIntegral y)*(fromInteger tailleCase))) smap 
                 load_batiments rdr tmap' smap' listeBats (cpt+1)
             otherwise -> do 
                 return (tmap, smap)
@@ -333,24 +368,24 @@ isMouseButtonEventPressed SDL.Event { SDL.eventPayload = SDL.MouseButtonEvent ev
     SDL.mouseButtonEventMotion eventData == SDL.Pressed
 isMouseButtonEventPressed _ = False
 
-processMouseEventBatiments :: Int -> Int -> [(BatId, Batiment)] -> SDL.Event -> Int -> (String, Maybe JoueurId)
+processMouseEventBatiments :: Int -> Int -> [(BatId, Batiment)] -> SDL.Event -> Int -> (String, Maybe JoueurId, Maybe Coord)
 processMouseEventBatiments xMouse yMouse listeB e@(SDL.Event _ (SDL.MouseButtonEvent eventData)) cpt 
-  | (cpt == length listeB) = if (xMouse >= (1740-190)) && (yMouse <= 200) then ("", Nothing) else ("Menu_Default", Nothing)
+  | (cpt == length listeB) = if (xMouse >= (1740-190)) && (yMouse <= 200) then ("", Nothing, Nothing) else ("Menu_Default", Nothing, Nothing)
   | otherwise = 
     let (Batiment bNom _ batCoord bJoueurID) = snd (listeB !! cpt)
         (C x y) = batCoord
         (BatId batId) = fst (listeB !! cpt) in 
     if ((xMouse >= x*50) && (xMouse <= x*50 + (fromInteger tailleCase))) && ((yMouse >= y*50) && (yMouse <= y*50+(fromInteger tailleCase))) then 
-      if (bNom == "QG") then ("QG_Menu", Just bJoueurID) 
-      else if (bNom == "Usine") then ("Usine_Menu", Just bJoueurID)
-      else if (bNom == "Raffinerie") then ("Raffinerie_Menu", Just bJoueurID)
-      else if (bNom == "Centrale") then ("Centrale_Menu", Just bJoueurID)
-      else ("Error Menu", Nothing)
+      if (bNom == "QG") then ("QG_Menu", Just bJoueurID, Just (C x y)) 
+      else if (bNom == "Usine") then ("Usine_Menu", Just bJoueurID, Just (C x y))
+      else if (bNom == "Raffinerie") then ("Raffinerie_Menu", Just bJoueurID, Just (C x y))
+      else if (bNom == "Centrale") then ("Centrale_Menu", Just bJoueurID, Just (C x y))
+      else ("Error Menu", Nothing, Nothing)
     else 
       (processMouseEventBatiments xMouse yMouse listeB e (cpt+1))
 
--- | Traitement d'un clic de souris
-processMouseEvent :: Int -> Int -> [(UniteId, Unite)] -> [(BatId, Batiment)] -> SDL.Event -> Int -> (String, Maybe JoueurId)
+-- | Traitement d'un clic de souris sur une des Unites ou un des Batiments
+processMouseEvent :: Int -> Int -> [(UniteId, Unite)] -> [(BatId, Batiment)] -> SDL.Event -> Int -> (String, Maybe JoueurId, Maybe Coord)
 processMouseEvent xMouse yMouse listeU listB e@(SDL.Event _ (SDL.MouseButtonEvent eventData)) cpt 
   | (cpt == length listeU) = 
       processMouseEventBatiments xMouse yMouse listB e 0
@@ -359,9 +394,9 @@ processMouseEvent xMouse yMouse listeU listB e@(SDL.Event _ (SDL.MouseButtonEven
           (UniteId id) = fst (listeU !! cpt)
           (C x y) = uCoord in 
       if ((xMouse >= x*50) && (xMouse <= x*50 + (fromInteger tailleCase))) && ((yMouse >= y*50) && (yMouse <= y*50+(fromInteger tailleCase))) then 
-        if (uNom == "Combattant") then ("Combattant_Menu", Just uProprio)
-        else if (uNom == "Collecteur") then ("Collecteur_Menu", Just uProprio)
-        else ("Error Menu", Nothing)
+        if (uNom == "Combattant") then ("Combattant_Menu", Just uProprio, Just (C x y))
+        else if (uNom == "Collecteur") then ("Collecteur_Menu", Just uProprio, Just (C x y))
+        else ("Error Menu", Nothing, Nothing)
       else  
         processMouseEvent xMouse yMouse listeU listB e (cpt+1)
   -- processMouseEvent _ _ _ _ _ = return ()
@@ -404,6 +439,33 @@ processMouseEventMenus  xMouse yMouse menuID e@(SDL.Event _ (SDL.MouseButtonEven
       if (((xMouse >= (1740-190)+24) && (xMouse <= (1740-190)+171)) && ((yMouse >= 56) && (yMouse <= 83))) then "Usine_Collecteur" 
       else if (((xMouse >= (1740-190)+21) && (xMouse <= (1740-190)+179)) && ((yMouse >= 88) && (yMouse <= 113))) then "Usine_Combattant"
       else "Usine_Combattant"
+
+    "Collecteur_Menu"-> 
+      if (((xMouse >= (1740-190)+35) && (xMouse <= (1740-190)+135)) && ((yMouse >= 80) && (yMouse <= 108))) then "Collecteur_Move" 
+      else if (((xMouse >= (1740-190)+35) && (xMouse <= (1740-190)+165)) && ((yMouse >= 118) && (yMouse <= 145))) then "Collecteur_Collect"
+      else "Collecteur_Menu"
+    "Collecteur_Move"-> 
+      if (((xMouse >= (1740-190)+35) && (xMouse <= (1740-190)+135)) && ((yMouse >= 80) && (yMouse <= 108))) then "Collecteur_Move" 
+      else if (((xMouse >= (1740-190)+35) && (xMouse <= (1740-190)+165)) && ((yMouse >= 118) && (yMouse <= 145))) then "Collecteur_Collect"
+      else "Collecteur_Move"
+    "Collecteur_Collect"-> 
+      if (((xMouse >= (1740-190)+35) && (xMouse <= (1740-190)+135)) && ((yMouse >= 80) && (yMouse <= 108))) then "Collecteur_Move" 
+      else if (((xMouse >= (1740-190)+35) && (xMouse <= (1740-190)+165)) && ((yMouse >= 118) && (yMouse <= 145))) then "Collecteur_Collect"
+      else "Collecteur_Collect"
+
+    "Combattant_Menu"-> 
+      if (((xMouse >= (1740-190)+15) && (xMouse <= (1740-190)+165)) && ((yMouse >= 83) && (yMouse <= 108))) then "Combattant_Patrouiller" 
+      else if (((xMouse >= (1740-190)+25) && (xMouse <= (1740-190)+140)) && ((yMouse >= 118) && (yMouse <= 143))) then "Combattant_Deplacer"
+      else "Combattant_Menu"
+    "Combattant_Patrouiller"-> 
+       if (((xMouse >= (1740-190)+15) && (xMouse <= (1740-190)+165)) && ((yMouse >= 83) && (yMouse <= 108))) then "Combattant_Patrouiller" 
+      else if (((xMouse >= (1740-190)+25) && (xMouse <= (1740-190)+140)) && ((yMouse >= 118) && (yMouse <= 143))) then "Combattant_Deplacer"
+      else "Combattant_Patrouiller"
+    "Combattant_Deplacer"-> 
+      if (((xMouse >= (1740-190)+15) && (xMouse <= (1740-190)+165)) && ((yMouse >= 83) && (yMouse <= 108))) then "Combattant_Patrouiller" 
+      else if (((xMouse >= (1740-190)+25) && (xMouse <= (1740-190)+140)) && ((yMouse >= 118) && (yMouse <= 143))) then "Combattant_Deplacer"
+      else "Combattant_Deplacer"
+      
     otherwise -> menuID
 
 
@@ -424,6 +486,18 @@ processMouseEventAchat xMouse _ menuID e@(SDL.Event _ (SDL.MouseButtonEvent even
       if (xMouse < 1740-190) then  "Carte" 
       else ""
     "Usine_Combattant" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    "Combattant_Deplacer" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    "Collecteur_Move" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    "Combattant_Patrouiller" ->  
+      if (xMouse < 1740-190) then  "Carte" 
+      else ""
+    "Collecteur_Collect" ->  
       if (xMouse < 1740-190) then  "Carte" 
       else ""
     otherwise -> ""  
@@ -511,6 +585,32 @@ is_my_object (Environnement joueurs mapp unites batiments) (C x y) joueurID =
     else 
       True
 
+get_Combattant_from_list :: Coord -> [Combattant] -> Combattant
+get_Combattant_from_list coord listeCombattant =
+  head (List.filter (\(Combattant _ (Unite _ uCoord _) _ _ _) -> uCoord == coord) listeCombattant)
+
+get_Collecteur_from_list :: Coord -> [Collecteur] -> Collecteur
+get_Collecteur_from_list coord listeCollecteur =
+  head (List.filter (\(Collecteur _ (Unite _ uCoord _) _ _ _ _) -> uCoord == coord) listeCollecteur)
+
+get_Unite_from_list_ID :: UniteId -> [Combattant] -> [Collecteur] -> Unite
+get_Unite_from_list_ID (UniteId num) listeCombattants listeCollecteurs =
+  let resCombattans = List.filter (\(Combattant (UniteId uniID) _ _ _ _) -> uniID == num) listeCombattants
+  in
+    if (resCombattans /= []) then
+      get_unite_Combattant (head resCombattans)
+    else
+      get_unite_Collecteur (head (List.filter (\(Collecteur (UniteId uniID) _ _ _ _ _) -> uniID == num) listeCollecteurs))
+
+get_PV_Batiment :: Batiment -> Int 
+get_PV_Batiment (Batiment _ pv _ _) = pv
+
+get_PV_from_Batiments :: Coord -> M.Map BatId Batiment -> Int 
+get_PV_from_Batiments coord bats = 
+  let res = (M.elems (M.filter (\(Batiment _ _ bCoord _) -> coord == bCoord) bats))
+  in 
+    if (length res > 0) then get_PV_Batiment (head res) else 0
+
 -----------------------------------------------------------------------------------------------------------
 -------------------------------------------------- Main ---------------------------------------------------
 -----------------------------------------------------------------------------------------------------------
@@ -552,6 +652,12 @@ main = do
   (tmap15, smap15) <- load_menu "Usine_Collecteur" renderer tmap14 smap14
   (tmap16, smap16) <- load_decor "Decor" renderer tmap15 smap15
 
+  (tmap17, smap17) <- load_menu "Collecteur_Collect" renderer tmap16 smap16
+  (tmap18, smap18) <- load_menu "Collecteur_Move" renderer tmap17 smap17
+
+  (tmap19, smap19) <- load_menu "Combattant_Deplacer" renderer tmap18 smap18
+  (tmap20, smap20) <- load_menu "Combattant_Patrouiller" renderer tmap19 smap19
+
 
 --   (tmap1, smap1) <- load 100 0 "CaseRessource" renderer "assets/ressource.bmp" tmap smap
 --   (tmap2, smap2) <- load 0 0 "CaseEau" renderer "assets/eau.bmp" tmap1 smap1
@@ -571,10 +677,10 @@ main = do
   Font.initialize
   
   
-  gameLoop 60 renderer tmap16 smap16 kbd [gameState_perso1, gameState_perso2] "Menu_Default" environnement [] [] Nothing
+  gameLoop 30 renderer tmap20 smap20 kbd [gameState_perso1, gameState_perso2] "Menu_Default" environnement [] [] Nothing Nothing
 
-gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> String -> Environnement -> [Collecteur] -> [Combattant] -> Maybe JoueurId -> IO ()
-gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] menuID envRes_combattant_collecteur listeCollecteurs listeCombattants joueurIdCourant = do
+gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> String -> Environnement -> [Collecteur] -> [Combattant] -> Maybe JoueurId -> Maybe Coord -> IO ()
+gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] menuID envRes_combattant_collecteur listeCollecteurs listeCombattants joueurIdCourant uniteStocke = do
   startTime <- time
   --- ensemble des events
   events <- pollEvents
@@ -600,11 +706,10 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
   -- when (((fromIntegral (M.persoX gameState_perso1)) + 50 >= (fromIntegral (M.persoX gameState_perso2)) && (fromIntegral (M.persoX gameState_perso1)) + 50 <= (fromIntegral (M.persoX gameState_perso2)+100))  &&
   --   ((fromIntegral (M.persoY gameState_perso1)) + 50 >= (fromIntegral (M.persoY gameState_perso2)) && (fromIntegral (M.persoY gameState_perso1)) + 50 <= (fromIntegral (M.persoY gameState_perso2)+100))) 
   --   $ do (SM.removeSprite (SpriteId "virus") smap)
-
+  
   let (Environnement joueurs mapp unites batiments) = envRes_combattant_collecteur
    
 
- 
  --- display background
   S.displaySprite renderer tmap (SM.fetchSprite (SpriteId "background") smap) -- peut etre a changer 
   display_carte (M.toList (carte mapp)) renderer tmap smap 0
@@ -612,6 +717,21 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
   display_collector_meu menuID renderer tmap smap
   display_batiments (M.toList batiments) renderer tmap smap 0
   
+
+ --- location de la souris
+  test <- MO.getAbsoluteMouseLocation
+  let SDL.P (SDL.V2 x1 y1) = test
+  let mousePos = SDL.P (SDL.V2 x1 y1) 
+      x = case mousePos of
+            SDL.P (SDL.V2 x _) -> fromIntegral x
+      y = case mousePos of
+            SDL.P (SDL.V2 _ y) -> fromIntegral y
+ 
+  let fmapRes = (fmap (\event -> processMouseEvent x y (M.toList unites) (M.toList batiments) event 0) mouseButtonEvents)
+  let (res, resJoueurID, resCoordUnite) = if (length fmapRes > 0) then head fmapRes else ("", Nothing, Nothing)
+  uniteStocke <- if (length fmapRes > 0) && (menuID /= "Combattant_Deplacer") && (menuID /= "Combattant_Menu") && (menuID /= "Collecteur_Menu") &&
+    (menuID /= "Collecteur_Move") && (menuID /= "Combattant_Patrouiller") && (menuID /= "Collecteur_Collect") then return resCoordUnite else return uniteStocke
+
   ---- affichage credits
   drawBlackRect renderer
   font <- Font.load "04B_30__.TTF" 24
@@ -636,7 +756,6 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
     surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixUsine))) 
     surfaceTexture <- createTextureFromSurface renderer surface
     copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
-    pure ()
   else if (menuID  == "QG_Centrale") then do 
     surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCentrale))) 
     surfaceTexture <- createTextureFromSurface renderer surface
@@ -659,37 +778,32 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
   drawBlackLIne2 renderer -- ligne menu droite
 
   
-
-  --- location de la souris
-  test <- MO.getAbsoluteMouseLocation
-  let SDL.P (SDL.V2 x1 y1) = test
-  let mousePos = SDL.P (SDL.V2 x1 y1) 
-      x = case mousePos of
-            SDL.P (SDL.V2 x _) -> fromIntegral x
-      y = case mousePos of
-            SDL.P (SDL.V2 _ y) -> fromIntegral y
- 
-  -- menuID <- if ((menuID == "Menu_Default") || (menuID == "Raffinerie_Menu") || (menuID == "Centrale_Menu")) then return menuID
-  --   else do 
-  --     case menuID of 
-  --       "QG_Menu" -> do 
-  --         if (((x >= (1740-190+25)) && (x <= (1740-190+75))) && ((y >= 55) && (y <= 80))) then return "QG_Raffinerie" else return menuID
-  --       otherwise -> return menuID 
-
-
-  let fmapRes = (fmap (\event -> processMouseEvent x y (M.toList unites) (M.toList batiments) event 0) mouseButtonEvents)
-  let (res, resJoueurID) = if (length fmapRes > 0) then head fmapRes else ("", Nothing)
-
+  -- if (isJust uniteStocke) then putStrLn $ "is est laaa, menuID: "<>menuID else putStrLn $ "il est PAS LA, menuID: " <> menuID
+  
   menuID <- if ((res /= "") && (menuID /= "QG_Raffinerie") && (menuID /= "QG_Usine") && 
-    (menuID /= "QG_Centrale") && (menuID /= "Usine_Collecteur") && (menuID /= "Usine_Combattant")) then do 
+    (menuID /= "QG_Centrale") && (menuID /= "Usine_Collecteur") && (menuID /= "Usine_Combattant") && (menuID /= "Combattant_Deplacer") && (menuID /= "Collecteur_Move")
+    && (menuID /= "Combattant_Patrouiller") && (menuID /= "Collecteur_Collect")) then do 
       putStrLn $ res 
       return res
     else do return (menuID)
   joueurIdCourant <- if (isJust resJoueurID) && (menuID /= "Usine_Collecteur") && (menuID /= "Usine_Combattant") then return resJoueurID else return joueurIdCourant
 
-  menuID <- if ((menuID == "Menu_Default") || (menuID == "Raffinerie_Menu") || (menuID == "Centrale_Menu")) then return menuID
+  -- Changement de menu en fonction d'ou l'utilisateur clique et dans quel menu il est deja  
+  menuID <- if ((menuID == "Menu_Default") || (menuID == "Raffinerie_Menu") || (menuID == "Centrale_Menu")) then do 
+    if (isJust uniteStocke) && (menuID /= "Menu_Default") then do
+          surface <- Font.solid font white (DT.pack ("PV:" <> (show (get_PV_from_Batiments (May.fromJust uniteStocke) batiments)))) 
+          surfaceTexture <- createTextureFromSurface renderer surface
+          copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 550) (V2 175 50))
+          return menuID
+    else return menuID
+    return menuID
     else do 
       if (menuID  == "QG_Menu") then do
+        if (isJust uniteStocke) then do
+          surface <- Font.solid font white (DT.pack ("PV:" <> (show (get_PV_from_Batiments (May.fromJust uniteStocke) batiments)))) 
+          surfaceTexture <- createTextureFromSurface renderer surface
+          copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 550) (V2 175 50))
+        else return ()
         let res2 = fmap (\event -> processMouseEventMenus x y "QG_Menu" event) mouseButtonEvents 
         if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
       else if (menuID  == "QG_Raffinerie") then do
@@ -702,6 +816,11 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
         let res2 = fmap (\event -> processMouseEventMenus x y "QG_Centrale" event) mouseButtonEvents 
         if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
       else if (menuID  == "Usine_Menu") then do
+        if (isJust uniteStocke) then do
+          surface <- Font.solid font white (DT.pack ("PV:" <> (show (get_PV_from_Batiments (May.fromJust uniteStocke) batiments)))) 
+          surfaceTexture <- createTextureFromSurface renderer surface
+          copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 550) (V2 175 50))
+        else return ()
         let res2 = fmap (\event -> processMouseEventMenus x y "Usine_Menu" event) mouseButtonEvents
         if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
       else if (menuID  == "Usine_Collecteur") then do
@@ -709,6 +828,24 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
         if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
       else if (menuID  == "Usine_Combattant") then do
         let res2 = fmap (\event -> processMouseEventMenus x y "Usine_Combattant" event) mouseButtonEvents
+        if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+      else if (menuID  == "Collecteur_Menu") then do
+        let res2 = fmap (\event -> processMouseEventMenus x y "Collecteur_Menu" event) mouseButtonEvents
+        if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+      else if (menuID  == "Collecteur_Collect") then do
+        let res2 = fmap (\event -> processMouseEventMenus x y "Collecteur_Collect" event) mouseButtonEvents
+        if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+      else if (menuID  == "Collecteur_Move") then do
+        let res2 = fmap (\event -> processMouseEventMenus x y "Collecteur_Move" event) mouseButtonEvents
+        if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+      else if (menuID  == "Combattant_Menu") then do
+        let res2 = fmap (\event -> processMouseEventMenus x y "Combattant_Menu" event) mouseButtonEvents
+        if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+      else if (menuID  == "Combattant_Patrouiller") then do
+        let res2 = fmap (\event -> processMouseEventMenus x y "Combattant_Patrouiller" event) mouseButtonEvents
+        if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+      else if (menuID  == "Combattant_Deplacer") then do
+        let res2 = fmap (\event -> processMouseEventMenus x y "Combattant_Deplacer" event) mouseButtonEvents
         if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
       else return (menuID)
   
@@ -766,6 +903,7 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
           if (prop_pre_set_combattant envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (getJoueurByJoueurID (May.fromJust joueurIdCourant) joueurs) listeCombattants) &&
             (prop_post_set_combattant envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (getJoueurByJoueurID (May.fromJust joueurIdCourant) joueurs) listeCombattants) then do
               let (resEnv, resListeCombattants) = (set_combattant envRes_combattant_collecteur (C (x `div` 50) (y `div` 50)) (getJoueurByJoueurID (May.fromJust joueurIdCourant) joueurs) listeCombattants) 
+              putStrLn $ "Achat Combattant"
               return (resEnv, resListeCombattants, "Menu_Default")   
           else return (envRes_combattant_collecteur, listeCombattants, "Menu_Default")
         else return (envRes_combattant_collecteur, listeCombattants, "Menu_Default")
@@ -776,40 +914,63 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
   let bats = (M.toList batimentsApres)
   let units = (M.toList unitesApres)
 
-  -- A voir si sa sert
   let tmap2 = tmap
       smap2 = smap
 
-  -- when (length bats /= length batiments) $ do
-  --   (tmap2', smap2') <- load_batiments renderer tmap smap [bats !! ((length bats) - 1)] 0
-  --   putStrLn $ "ouais"
-  --   S.displaySprite renderer tmap2' (SM.fetchSprite (SpriteId "B6") smap2')
-  --   putStrLn $ "il est la"
-  --   let tmap2 = tmap2'
-  --   let smap2 = smap2'
-  --   if (M.notMember (SpriteId "B6") smap2) then putStrLn $ "[IN] no" else putStrLn $ "[OUT] yes" 
-  --   return ()
-
   (tmap2', smap2') <- if (length bats /= length batiments) 
                     then load_batiments renderer tmap smap [bats !! ((length bats) - 1)] 0
-                    else if (length units /= length unites) then load_unites renderer tmap smap [units !! ((length units) - 1)] 0 -- voir pour last
+                    else if (length units /= length unites) then do
+                      putStrLn $ "ajoute" <> show (units !! ((length units) - 1))
+                      load_unites renderer tmap smap [units !! ((length units) - 1)] 0 -- voir pour last
                     else return (tmap2, smap2)
   
- 
-  -- S.displaySprite renderer tmap2 (SM.fetchSprite (SpriteId "B6") smap2)
-  -- (tmap2, smap2) <- if (length bats /= length batiments) then do return (load_batiments renderer tmap smap [bats !! ((length bats) - 1)] 0) else return (tmap, smap)
+  -- Ordres Unites
+  (listeCollecteurs, menuID) <- if (menuID  == "Collecteur_Move") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "Collecteur_Move" event) mouseButtonEvents 
+      if (((length res3) > 0) && ((head res3) == "Carte")) then do 
+        putStrLn $ "Set Collecteur Deplacer dans res3"
+        if (isJust uniteStocke) then do 
+          putStrLn $ "Set Collecteur Deplacer"
+          return ((set_ordre_deplacer_collecteur (get_Collecteur_from_list (May.fromJust uniteStocke) listeCollecteurs) listeCollecteurs (C (x `div` 50) (y `div` 50))), "Menu_Default")
+        else return (listeCollecteurs, menuID)
+      else return (listeCollecteurs, menuID)
+    else return (listeCollecteurs, menuID)
 
-  -- let (tmap2, smap2) = (if (length bats /= length batiments) then do 
-  --     resTmap, resSmap <- (load_batiments renderer tmap smap [bats !! ((length bats) - 1)] 0)
-  --     return ress
-  --   else return (tmap, smap))
+  (listeCollecteurs, menuID) <- if (menuID  == "Collecteur_Collect") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "Collecteur_Collect" event) mouseButtonEvents 
+      if (((length res3) > 0) && ((head res3) == "Carte")) then do 
+        putStrLn $ "Set Collecteur Collecter dans res3"
+        if (isJust uniteStocke) then do 
+          putStrLn $ "Set Collecteur Collecter"
+          return ((set_ordre_collect_collecteur (get_Collecteur_from_list (May.fromJust uniteStocke) listeCollecteurs) listeCollecteurs (C (x `div` 50) (y `div` 50))), "Menu_Default")
+        else return (listeCollecteurs, menuID)
+      else return (listeCollecteurs, menuID)
+    else return (listeCollecteurs, menuID)
+
+  (listeCombattants, menuID) <- if (menuID  == "Combattant_Deplacer") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "Combattant_Deplacer" event) mouseButtonEvents 
+      if (((length res3) > 0) && ((head res3) == "Carte")) then do 
+        if (isJust uniteStocke) then do 
+          putStrLn $ "Set Combattant Deplacer"
+          return ((set_ordre_deplacer_combattant (get_Combattant_from_list (May.fromJust uniteStocke) listeCombattants) listeCombattants (C (x `div` 50) (y `div` 50))), "Menu_Default")
+        else return (listeCombattants, menuID)
+      else return (listeCombattants, menuID)
+    else return (listeCombattants, menuID)
+
+  (listeCombattants, menuID) <- if (menuID  == "Combattant_Patrouiller") then do 
+      let res3 = fmap (\event -> processMouseEventAchat x y "Combattant_Patrouiller" event) mouseButtonEvents 
+      if (((length res3) > 0) && ((head res3) == "Carte")) then do 
+        if (isJust uniteStocke) then do 
+          putStrLn $ "Set Combattant Patrouiller"
+          return ((set_ordre_pattrouiller_combattant (get_Combattant_from_list (May.fromJust uniteStocke) listeCombattants) listeCombattants (C (x `div` 50) (y `div` 50))), "Menu_Default")
+        else return (listeCombattants, menuID)
+      else return (listeCombattants, menuID)
+    else return (listeCombattants, menuID)
+  
 
 
-
-
-
-
-
+  -- if (isJust uniteStocke) then do 
+  --   putStrLn $ show (May.fromJust uniteStocke) else pure ()
 
       -- if (prop_pre_set_raffinerie envRes_combattant_collecteur (C x y) (JoueurId 0)) then do
       -- else return envRes_combattant_collecteur
@@ -852,7 +1013,36 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
   ---
   -- let (M.GameState pX pY sp) = gameState'
   -- if (pX > x+100) && (pX < x-100) then putStrLn $ "toucheee" else putStrLn $ "non"
-
+  -- putStrLn $ "AVANT ETAPE"
     -- if MO.getAbsoluteMouseLocation
+  let (newEnv, newListCollecteurs, newListCombattants) = etape envRes_combattant_collecteur listeCollecteurs listeCombattants
+
+  -- if (length newListCombattants == 2) then error ("ah ouais: " <> show newListCombattants) else pure ()
+
+  -- putStrLn $ "APRES ETAPE"
   
-  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap2' smap2' kbd' [gameState', gameState_perso2] menuID envRes_combattant_collecteur listeCollecteurs listeCombattants joueurIdCourant)
+  (tmap2', smap2') <- if (listeCombattants /= newListCombattants) 
+                  then do 
+                    putStrLn $ "avant"
+                    let combat@(Combattant (UniteId num) (Unite _ (C x y) _)  _ _ _)  = List.head (newListCombattants List.\\ listeCombattants)
+                        spriteAncienne = SM.fetchSprite (SpriteId ("U"++(show num))) smap2'
+                        spriteNouvelle = S.moveTo spriteAncienne (fromIntegral (x*50)) (fromIntegral (y*50))
+                    putStrLn $ "apres"
+                    return (tmap2', SM.changeSprite (SpriteId ("U"++(show num))) spriteNouvelle smap2')
+                  else return (tmap2', smap2')
+  
+  -- putStrLn $ "entre"
+
+  (tmap2', smap2') <- if (listeCollecteurs /= newListCollecteurs) 
+                then do 
+                  let combat@(Collecteur (UniteId num) (Unite _ (C x y) _) _ _ _ _)  = List.head (newListCollecteurs List.\\ listeCollecteurs)
+                      spriteAncienne = SM.fetchSprite (SpriteId ("U"++(show num))) smap2'
+                      spriteNouvelle = S.moveTo spriteAncienne (fromIntegral (x*50)) (fromIntegral (y*50))
+                  return (tmap2', SM.changeSprite (SpriteId ("U"++(show num))) spriteNouvelle smap2')
+                else return (tmap2', smap2')
+  
+  -- putStrLn $ "fin"
+
+  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap2' smap2' kbd' [gameState', gameState_perso2] menuID newEnv newListCollecteurs newListCombattants joueurIdCourant uniteStocke)
+
+
