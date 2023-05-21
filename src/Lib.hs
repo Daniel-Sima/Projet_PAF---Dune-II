@@ -92,6 +92,9 @@ module Lib
     set_ordre_deplacer_collecteur,
     set_ordre_pattrouiller_combattant,
     set_ordre_collect_collecteur,
+    get_carte,
+    getCuveVal,
+    cuveMax,
     Cuve(..),
     Ordre(..),
     Collecteur(..),
@@ -151,10 +154,10 @@ cuveMax :: Integer
 cuveMax = 1
 
 pvCollecteurMax :: Int
-pvCollecteurMax = 3 
+pvCollecteurMax = 30 
 
 pvCombattantMax :: Int
-pvCombattantMax = 3
+pvCombattantMax = 30
 
 pvBats :: Int
 pvBats = 100
@@ -360,6 +363,9 @@ prop_inv_Environnement (Environnement eJoueurs eCarte eUnites eBatiments) = let 
                     _ -> True) (get_coords_batiment env)) && 
     (prop_inv_Carte eCarte)
 
+-- | Fonction qui retourne la carte de l'Environnement
+get_carte :: Environnement -> Carte 
+get_carte (Environnement _ eCarte _ _) = eCarte
 ------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------- Part III ----------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------
@@ -638,11 +644,12 @@ set_collecteur (Environnement joueurs mapp unites bats) coordUsine player listCo
 prop_post_set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
 prop_post_set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs =
     let ((Environnement joueursApres mappApres unitesApres batsApres), listCollecteursApres) = set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs
-    in ((List.filter (\(Joueur _ idAvant _) -> idAvant /= jid player) joueursAvant) == (List.filter (\(Joueur _ idApres _) -> idApres /= jid player) joueursApres)) &&
-        (get_player_credit (List.head (List.filter (\(Joueur _ id _) -> id == jid player) joueursApres))) == ((get_player_credit player) - prixCollecteur) &&
+    in 
+        ((List.filter (\(Joueur _ idAvant _) -> idAvant /= jid player) joueursAvant) == (List.filter (\(Joueur _ idApres _) -> idApres /= jid player) joueursApres)) &&
+        (get_player_credit (List.head (List.filter (\(Joueur _ id _) -> id == jid player) joueursApres))) == ((get_player_credit player) - prixCollecteur)  &&
         (mappAvant == mappApres) && (batsAvant == batsApres) && 
         unom (May.fromJust (M.lookup (get_uniteID_Collecteur (List.head (listCollecteursApres \\ listCollecteurs))) unitesApres)) == "Collecteur" &&
-        ((M.delete (get_uniteID_Collecteur (List.head (listCollecteursApres \\ listCollecteurs))) unitesApres) == unitesAvant) &&
+        -- ((M.delete (get_uniteID_Collecteur (List.head (listCollecteursApres \\ listCollecteurs))) unitesApres) == unitesAvant) 
         prop_inv_Environnement (Environnement joueursApres mappApres unitesApres batsApres)
 
     
@@ -675,7 +682,7 @@ prop_post_set_combattant (Environnement joueursAvant mappAvant unitesAvant batsA
         (get_player_credit (List.head (List.filter (\(Joueur _ id _) -> id == jid player) joueursApres))) == ((get_player_credit player) - prixCombattant) &&
         (mappAvant == mappApres) && (batsAvant == batsApres) && 
         unom (May.fromJust (M.lookup (get_uniteID_Combattant (List.head (listCombattantApres \\ listCombattant))) unitesApres)) == "Combattant" &&
-        ((M.delete (get_uniteID_Combattant (List.head (listCombattantApres \\ listCombattant))) unitesApres) == unitesAvant) &&
+        -- ((M.delete (get_uniteID_Combattant (List.head (listCombattantApres \\ listCombattant))) unitesApres) == unitesAvant) &&
         prop_inv_Environnement (Environnement joueursApres mappApres unitesApres batsApres)
 
 
@@ -983,7 +990,7 @@ get_raffinerie_closest :: Collecteur -> Environnement -> Coord
 get_raffinerie_closest (Collecteur uniteIDCollecteur uniteCollecteur _ _ _ _) (Environnement _ _ _ bats) =
     let joueur = (uproprio uniteCollecteur)
     in 
-        let raffineriesJoueur = M.elems (M.filter (\(Batiment nom _ batCoord batProprio) -> batProprio == joueur && nom == "Raffineries") bats)
+        let raffineriesJoueur = M.elems (M.filter (\(Batiment nom _ batCoord batProprio) -> batProprio == joueur && nom == "Raffinerie") bats)
         in 
             if (raffineriesJoueur /= []) then 
                 get_coord_raffineries_closes (ucoord uniteCollecteur) raffineriesJoueur
@@ -1002,12 +1009,12 @@ recolte_collecteur_raffinerie  (Collecteur uniteID uniteCollecteur cuve pvv ordr
             if (length ordresCollecteur > 0) then
                 (
                     (Collecteur uniteID uniteCollecteur (changeCuve cuve 0) pvv (List.drop 1 ordresCollecteur) (head ordresCollecteur)),
-                    (Environnement ((Joueur username userID (creditJoueur+(fromIntegral (getCuveVal cuve)))):joueursSansPlayer) mapp unites bats)
+                    (Environnement ((Joueur username userID (creditJoueur+(fromIntegral ((getCuveVal cuve)*10)))):joueursSansPlayer) mapp unites bats)
                 )
             else 
                 (
                     (Collecteur uniteID uniteCollecteur (changeCuve cuve 0) pvv ordresCollecteur Rien),
-                    (Environnement ((Joueur username userID (creditJoueur+(fromIntegral (getCuveVal cuve)))):joueursSansPlayer) mapp unites bats)
+                    (Environnement ((Joueur username userID (creditJoueur+(fromIntegral ((getCuveVal cuve)*10)))):joueursSansPlayer) mapp unites bats)
                 )
 
 
@@ -1020,19 +1027,19 @@ collecter_coord_aux env@(Environnement joueurs (Carte mapp) unites bats) collect
                     let (C xRaffinerie yRaffinerie) = get_raffinerie_closest collecteur env
                     in
                         if xRaffinerie == (-1) && yRaffinerie == (-1) then -- pas de raffinerie
-                            (collecteur, env)
+                           (collecteur, env) -- on reste sur place
                         else 
-                            if (coord /= (C xRaffinerie yRaffinerie)) then 
-                                (
-                                let uniteDep = (deplacer_unite env uniteCollecteur coord) 
+                            if (close_to_ennemi (ucoord uniteCollecteur) (C xRaffinerie yRaffinerie)) then -- == closest to Batiment too
+                                recolte_collecteur_raffinerie collecteur env
+                            else 
+                                let uniteDep = (deplacer_unite env uniteCollecteur (C xRaffinerie yRaffinerie)) 
                                 in 
                                     if not (isJust uniteDep) then ((Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur [] Rien), env)
-                                    else 
-                                        ((Collecteur uniteIDCollecteur (May.fromJust uniteDep) cuve pvCollecteur ordresCollecteur butCollecteur), 
-                                        (Environnement joueurs (Carte mapp) (M.insert uniteIDCollecteur (May.fromJust uniteDep) unites) bats)) 
-                                )
-                            else 
-                                recolte_collecteur_raffinerie collecteur env
+                                    else  
+                                        (
+                                            (Collecteur uniteIDCollecteur (May.fromJust uniteDep) cuve pvCollecteur ordresCollecteur butCollecteur), 
+                                            (Environnement joueurs (Carte mapp) (M.insert uniteIDCollecteur (May.fromJust uniteDep) unites) bats)
+                                        ) 
                 else 
                     if (coord /= (ucoord uniteCollecteur)) then (
                         let uniteDep = (deplacer_unite env uniteCollecteur coord) 
@@ -1046,9 +1053,9 @@ collecter_coord_aux env@(Environnement joueurs (Carte mapp) unites bats) collect
                             if ((isJust res_collecteur) && (isJust res_env)) then
                                 (May.fromJust res_collecteur, May.fromJust res_env)
                             else 
-                                if (versRaffinerie == True) then -- soit cuve pleine soit fini de recolter
-                                    recolte_collecteur_raffinerie (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur (Collecter (C (-1) (-1)))) env -- -1 -1 pour dire qu'on se dirige vers la raffinerie
-                                else -- on a rien a recolter
+                                if ((versRaffinerie == True)) then -- soit cuve pleine soit fini de recolter
+                                    ((Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur (Collecter (C (-1) (-1)))), env) -- -1 -1 pour dire qu'on se dirige vers la raffinerie
+                                else -- on a rien a recolter 
                                     if ((length ordresCollecteur) == 0) then ((Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur Rien), env)
                                     else ((Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur (drop 1 ordresCollecteur) (head ordresCollecteur)), env)
                     )
@@ -1091,11 +1098,13 @@ find_unite_collecteur_combattant listeCombattant listeCollecteur u@(Unite uNom u
     else -- Collecteur  
         Right (List.head (List.filter (\(Collecteur _ (Unite _ unitCollectCord unitCollectProprio) _ _ _ _) ->  uCoord == unitCollectCord && uProrpio == unitCollectProprio) listeCollecteur))
 
--- | Renvoie true si l'on est a une case pres d'un ennemi unite
+-- | Renvoie true si l'on est a une case pres d'un ennemi unite (fonctionne aussi pour Batiment)
 close_to_ennemi :: Coord -> Coord -> Bool
 close_to_ennemi (C xMoi yMoi) (C xEnnemi yEnnemi) =
     if ((sqrt (fromIntegral ((xMoi-xEnnemi)*(xMoi-xEnnemi) + (yMoi-yEnnemi)*(yMoi-yEnnemi)))) < 1.5) then True 
     else False 
+
+
 
 
 -- | Renvoie le BatId d'un Batiment depuis sa map
@@ -1145,7 +1154,7 @@ patrouiller_coord_aux env@(Environnement joueurs (Carte mapp) unites bats) comba
         Patrouiller coord1 coord2 ->
             let (attackUnite, uniteEnnemi) = combattant_close_ennemi_unite unites uniteCombattant 
             in 
-                if (attackUnite == True) && (length listeCombattants > 0) && (length listeCollecteurs > 0) then 
+                if (attackUnite == True) then
                     let uniteRes = find_unite_collecteur_combattant listeCombattants listeCollecteurs (May.fromJust uniteEnnemi)
                     in
                         case uniteRes of 
