@@ -86,6 +86,10 @@ carteEx = Carte (M.fromList ([(C 0 0, Herbe)
                    , (C 4 3, Herbe)
                    , (C 4 4, Herbe)]))
 
+energieOriginal :: Environnement ->  M.Map JoueurId Int
+energieOriginal env@(Environnement joueurs _ _ _) = 
+  M.fromList (List.zip (get_id_Joueurs env) (replicate (List.length joueurs) 200))
+
 randomNb :: Integer -> [Integer]
 randomNb seed = iterate (\x -> (25210345917 * x + 11) `mod` (2^48)) seed
 
@@ -556,6 +560,13 @@ loadBackground rdr path tmap smap = do
   let smap' = SM.addSprite (SpriteId "background") sprite smap
   return (tmap', smap')
 
+loadBackgroundVictory :: Renderer -> FilePath -> TextureMap -> SpriteMap -> IO (TextureMap, SpriteMap)
+loadBackgroundVictory rdr path tmap smap = do
+  tmap' <- TM.loadTexture rdr path (TextureId "victory") tmap
+  let sprite = S.defaultScale $ S.addImage S.createEmptySprite $ S.createImage (TextureId "victory") (S.mkArea 0 0 1740 850)
+  let smap' = SM.addSprite (SpriteId "victory") sprite smap
+  return (tmap', smap')
+
 drawBlackRect :: SDL.Renderer -> IO ()
 drawBlackRect renderer = do
   SDL.rendererDrawColor renderer SDL.$= SDL.V4 173 140 118 255
@@ -618,7 +629,8 @@ is_my_object (Environnement joueurs mapp unites batiments) (C x y) joueurID =
 
 get_Combattant_from_list :: Coord -> [Combattant] -> Combattant
 get_Combattant_from_list coord listeCombattant =
-  head (List.filter (\(Combattant _ (Unite _ uCoord _) _ _ _) -> uCoord == coord) listeCombattant)
+  if (length (List.filter (\(Combattant _ (Unite _ uCoord _) _ _ _) -> uCoord == coord) listeCombattant) == 0) then error ("Length problem: " <> show listeCombattant <> " ==> coord: " <> show coord)
+  else head (List.filter (\(Combattant _ (Unite _ uCoord _) _ _ _) -> uCoord == coord) listeCombattant)
 
 get_Collecteur_from_list :: Coord -> [Collecteur] -> Collecteur
 get_Collecteur_from_list coord listeCollecteur =
@@ -671,6 +683,44 @@ get_Cuve_Collecteur coord listeCollect =
       in
         fromIntegral (getCuveVal cuve)
 
+has_but :: Collecteur -> Bool
+has_but (Collecteur _ (Unite _ uCoord uProprio) _ _ _ but) = but /= Rien
+
+is_blocked :: M.Map Coord Terrain -> Collecteur -> Bool
+is_blocked mapp (Collecteur _ (Unite _ (C x y) uProprio) _ _ _ but) = 
+  if (isJust (M.lookup (C x (y-1)) (mapp))) && (isJust (M.lookup (C (x+1) y) (mapp))) && (isJust (M.lookup (C (x-1) y) (mapp)))then 
+    ((May.fromJust (M.lookup (C x (y-1)) (mapp))) == Eau) && (((May.fromJust (M.lookup (C (x+1) y) (mapp))) == Eau) || ((May.fromJust (M.lookup (C (x-1) y) (mapp))) == Eau)) && ((May.fromJust (M.lookup (C x y) (mapp))) == Herbe) 
+  else False
+
+get_set_Ressource_closest :: [Collecteur] -> Environnement -> [Collecteur]
+get_set_Ressource_closest listeCollecteurs (Environnement joueurs (Carte mapp) unites bats) =
+  if (length listeCollecteurs > 0) then 
+    let listeCollectsProprio = (List.filter (\(Collecteur _ (Unite _ uCoord uProprio) _ _ _ _) -> uProprio == (JoueurId 1)) listeCollecteurs) 
+    in 
+      if (length listeCollectsProprio > 0) && (not (has_but (head listeCollectsProprio))) then 
+        let permierCollect@(Collecteur _ (Unite _ uCoord _) _ _ _ _) = head listeCollectsProprio
+        in 
+          let coordsRessources = M.keys $ M.filterWithKey (\_ terrain -> case terrain of
+                                                                Ressource _ -> True
+                                                                otherwise -> False) mapp
+          in 
+            if (coordsRessources /= []) then
+              let coordClosest = foldr (\coords acc -> if (Lib.distance coords uCoord) < (Lib.distance acc uCoord) then coords else acc) (head coordsRessources) coordsRessources
+              in 
+                (set_ordre_collect_collecteur (get_Collecteur_from_list uCoord listeCollecteurs) listeCollecteurs coordClosest)
+            else listeCollecteurs
+      else if (length listeCollectsProprio > 0) && (is_blocked mapp (head listeCollectsProprio)) then 
+        let collecteurCourant@(Collecteur _ (Unite _ (C x y) _) _ _ _ _) = (head listeCollectsProprio) 
+        in
+          if (((isJust (M.lookup (C (x-1) y) (mapp))))) && ((May.fromJust (M.lookup (C (x-1) y) (mapp))) == Eau) &&
+            (((isJust (M.lookup (C x (y-1)) (mapp))))) && ((May.fromJust (M.lookup (C x (y-1)) (mapp))) == Eau) then 
+            set_ordre_deplacer_collecteur_direct collecteurCourant listeCollecteurs (C (x-1) (y+1))
+          else if (((isJust (M.lookup (C (x+1) y) (mapp))))) && ((May.fromJust (M.lookup (C (x+1) y) (mapp))) == Eau) &&
+            (((isJust (M.lookup (C x (y-1)) (mapp))))) && ((May.fromJust (M.lookup (C x (y-1)) (mapp))) == Eau) then 
+              set_ordre_deplacer_collecteur_direct collecteurCourant listeCollecteurs (C (x+5) y)
+          else set_ordre_deplacer_collecteur_direct collecteurCourant listeCollecteurs (C x y)
+      else listeCollecteurs
+  else listeCollecteurs
 
 -----------------------------------------------------------------------------------------------------------
 -------------------------------------------------- Main ---------------------------------------------------
@@ -688,17 +738,19 @@ main = do
   if (prop_inv_Environnement environnement) then return ()
   else error "[Invariant] Mauvaise generation de carte"
 
+
   let (Environnement joueurs mapp unites batiments) = environnement
+  let energie = energieOriginal environnement 
 
-  (environnement, listeCombattants) <- return (set_combattant environnement (C 26 15) (getJoueurByJoueurID (JoueurId 1) joueurs) [])
-  
-  -- if (prop_pre_set_combattant environnement (C 26 15) (getJoueurByJoueurID (JoueurId 1) joueurs) [])  &&
-  --                                       (prop_post_set_combattant environnement (C 26 15) (getJoueurByJoueurID (JoueurId 1) joueurs) []) then do
-  --                                         let (resEnv, resListeCombattants) = (set_combattant environnement (C 26 15) (getJoueurByJoueurID (JoueurId 1) joueurs) [])
-  --                                         putStrLn $ "Achat Combattant PC"
-  --                                         return (resEnv, resListeCombattants)
-  --                                       else error "pas bien ici"
-
+  -- Chargement objets PC 
+  (environnement@(Environnement joueurs mapp unites batiments), listeCombattants) <- return (set_combattant environnement (C 26 15) (getJoueurByJoueurID (JoueurId 1) joueurs) [])
+  (environnement@(Environnement joueurs mapp unites batiments), listeCombattants) <- return (set_combattant environnement (C 30 5) (getJoueurByJoueurID (JoueurId 1) joueurs) listeCombattants)
+  (environnement@(Environnement joueurs mapp unites batiments), listeCollecteurs) <- return (set_collecteur environnement (C 20 6) (getJoueurByJoueurID (JoueurId 1) joueurs) [])
+  (environnement@(Environnement joueurs mapp unites batiments), listeCollecteurs) <- return (set_collecteur environnement (C 28 6) (getJoueurByJoueurID (JoueurId 1) joueurs) listeCollecteurs)
+  (environnement@(Environnement joueurs mapp unites batiments)) <- return (set_raffinerie environnement (C 28 10) (getJoueurByJoueurID (JoueurId 1) joueurs))
+  (environnement@(Environnement joueurs mapp unites batiments)) <- return (set_raffinerie environnement (C 24 15) (getJoueurByJoueurID (JoueurId 1) joueurs))
+  (environnement@(Environnement joueurs mapp unites batiments)) <- return (set_usine environnement (C 30 14) (getJoueurByJoueurID (JoueurId 1) joueurs))
+  (environnement@(Environnement joueurs mapp unites batiments)) <- return (set_centrale environnement (C 29 7) (getJoueurByJoueurID (JoueurId 1) joueurs))
 
    -- chargement de l'image du fond
   (tmap, smap) <- loadBackground renderer "assets/herbe.bmp" TM.createTextureMap SM.createSpriteMap
@@ -728,11 +780,13 @@ main = do
   (tmap19, smap19) <- load_menu "Combattant_Deplacer" renderer tmap18 smap18
   (tmap20, smap20) <- load_menu "Combattant_Patrouiller" renderer tmap19 smap19
 
+  (tmappp, smappp) <- loadBackgroundVictory renderer "assets/victory.bmp" tmap20 smap20
+
   -- Ajout des objets pour le PC 
   (Environnement joueurs mapp unites batiments) <- return environnement
-  (tmap00, smap00) <- load_unites renderer tmap20 smap20 [(M.toList unites) !! ((length (M.toList unites)) - 1)]  0  
-  listeCombattants <- return (set_ordre_pattrouiller_combattant (get_Combattant_from_list (C 26 15) listeCombattants) listeCombattants (C 26 10))
-
+  listeCombattants <- return (set_ordre_pattrouiller_combattant (get_Combattant_from_list (C 26 16) listeCombattants) listeCombattants (C 26 10))
+  listeCombattants <- return (set_ordre_pattrouiller_combattant (get_Combattant_from_list (C 30 6) listeCombattants) listeCombattants (C 20 6))
+ 
 
 
   -- initialisation de l'état du jeu
@@ -747,10 +801,10 @@ main = do
   Font.initialize
 
 
-  gameLoop 30 renderer tmap00 smap00 kbd [gameState_perso1, gameState_perso2] "Menu_Default" environnement [] listeCombattants Nothing Nothing
+  gameLoop 30 renderer tmappp smappp kbd [gameState_perso1, gameState_perso2] "Menu_Default" environnement listeCollecteurs listeCombattants Nothing Nothing energie
 
-gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> String -> Environnement -> [Collecteur] -> [Combattant] -> Maybe JoueurId -> Maybe Coord -> IO ()
-gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] menuID envRes_combattant_collecteur listeCollecteurs listeCombattants joueurIdCourant uniteStocke = do
+gameLoop :: (RealFrac a, Show a) => a -> Renderer -> TextureMap -> SpriteMap -> Keyboard -> [GameState] -> String -> Environnement -> [Collecteur] -> [Combattant] -> Maybe JoueurId -> Maybe Coord -> M.Map JoueurId Int -> IO ()
+gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] menuID envRes_combattant_collecteur listeCollecteurs listeCombattants joueurIdCourant uniteStocke energie = do
   startTime <- time
   --- ensemble des events
   events <- pollEvents
@@ -763,14 +817,29 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
 
 
   let (Environnement joueurs mapp unites batiments) = envRes_combattant_collecteur
+  
+  listeCollecteurs <- return (get_set_Ressource_closest listeCollecteurs envRes_combattant_collecteur)
 
+  font <- Font.load "04B_30__.TTF" 24
+  white <- pure $ V4 255 255 255 255
+  blue <- pure $ V4 0 0 255 255
+  red <- pure $ V4 255 0 0 255
+  couleur <- return white
 
- --- display background
-  S.displaySprite renderer tmap (SM.fetchSprite (SpriteId "background") smap) -- peut etre a changer
-  display_carte (M.toList (carte mapp)) renderer tmap smap 0
-  display_unite (M.toList unites) renderer tmap smap 0
-  display_collector_meu menuID renderer tmap smap
-  display_batiments (M.toList batiments) renderer tmap smap 0
+  if (length joueurs == 1) then do 
+    let (Joueur _ (JoueurId num) _ ) = head joueurs
+    S.displaySprite renderer tmap (SM.fetchSprite (SpriteId "victory") smap) 
+    surface <- Font.solid font white (DT.pack ("Win for player ID " <> show num))
+    surfaceTexture <- createTextureFromSurface renderer surface
+    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (200) 500) (V2 1250 300))
+    return ()
+  else do 
+    S.displaySprite renderer tmap (SM.fetchSprite (SpriteId "background") smap) -- peut etre a changer
+    display_carte (M.toList (carte mapp)) renderer tmap smap 0
+    display_unite (M.toList unites) renderer tmap smap 0
+    display_collector_meu menuID renderer tmap smap
+    display_batiments (M.toList batiments) renderer tmap smap 0
+    return ()
 
 
  --- location de la souris
@@ -788,49 +857,54 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
     (menuID /= "Collecteur_Move") && (menuID /= "Combattant_Patrouiller") && (menuID /= "Collecteur_Collect") then return resCoordUnite else return uniteStocke
 
   ---- affichage credits
-  drawBlackRect renderer
-  font <- Font.load "04B_30__.TTF" 24
-  white <- pure $ V4 255 255 255 255
-  blue <- pure $ V4 0 0 255 255
-  red <- pure $ V4 255 0 0 255
-  couleur <- return white
-  couleur <- if (isJust joueurIdCourant) && (get_id_JoueurId (May.fromJust joueurIdCourant)) == 0 then return red else return blue
-  if (isJust joueurIdCourant) then do
-    surface <- Font.solid font white (DT.pack ("Credits:" <> (show (get_player_credit (getJoueurByJoueurID (May.fromJust joueurIdCourant) joueurs)))))
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 250) (V2 175 50))
-    surface <- Font.solid font couleur (DT.pack ("Joueur ID:" <> (show (get_id_JoueurId (May.fromJust joueurIdCourant)))))
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 450) (V2 175 50))
-  else if (menuID  == "QG_Raffinerie") then do
-    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixRaffinerie) ))
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
-    pure ()
-  else if (menuID  == "QG_Usine") then do
-    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixUsine)))
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
-  else if (menuID  == "QG_Centrale") then do
-    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCentrale)))
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
-    pure ()
-  else if (menuID  == "Usine_Combattant") then do
-    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCombattant)))
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
-    pure ()
-  else if (menuID  == "Usine_Collecteur") then do
-    surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCollecteur)))
-    surfaceTexture <- createTextureFromSurface renderer surface
-    copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
-    pure ()
-  else pure ()
+  if (length joueurs /= 1) then do 
+    drawBlackRect renderer
+    couleur <- if (isJust joueurIdCourant) && (get_id_JoueurId (May.fromJust joueurIdCourant)) == 0 then return red else return blue
+    if (isJust joueurIdCourant) then do
+      surface <- Font.solid font white (DT.pack ("Credits:" <> (show (get_player_credit (getJoueurByJoueurID (May.fromJust joueurIdCourant) joueurs)))))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 250) (V2 175 50))
+      surface <- Font.solid font couleur (DT.pack ("Joueur ID:" <> (show (get_id_JoueurId (May.fromJust joueurIdCourant)))))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 450) (V2 175 50))
+    else if (menuID  == "QG_Raffinerie") then do
+      surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixRaffinerie) ))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+      pure ()
+    else if (menuID  == "QG_Usine") then do
+      surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixUsine)))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+    else if (menuID  == "QG_Centrale") then do
+      surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCentrale)))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+      pure ()
+    else if (menuID  == "Usine_Combattant") then do
+      surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCombattant)))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+      pure ()
+    else if (menuID  == "Usine_Collecteur") then do
+      surface <- Font.solid font white (DT.pack ("Prix:" <> (show prixCollecteur)))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 350) (V2 175 50))
+      pure ()
+    else pure ()
 
-  display_collector_meu "Decor" renderer tmap smap
-  drawBlackLIne1 renderer -- ligne menu gauche
-  drawBlackLIne2 renderer -- ligne menu droite
+    if (isJust joueurIdCourant) then do
+      let (JoueurId num) = (May.fromJust joueurIdCourant)
+      surface <- Font.solid font white (DT.pack ("Energie " <> (show num) <> ": " <>(show (May.fromJust (M.lookup (JoueurId num)  energie)))))
+      surfaceTexture <- createTextureFromSurface renderer surface
+      copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 600) (V2 175 50))
+      pure ()
+    else pure ()
+
+    display_collector_meu "Decor" renderer tmap smap
+    drawBlackLIne1 renderer -- ligne menu gauche
+    drawBlackLIne2 renderer -- ligne menu droite
+  else return ()
 
   -- if (isJust uniteStocke) then putStrLn $ "is est laaa, menuID: "<>menuID else putStrLn $ "il est PAS LA, menuID: " <> menuID
 
@@ -849,7 +923,19 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
           surface <- Font.solid font white (DT.pack ("PV:" <> (show (get_PV_from_Batiments (May.fromJust uniteStocke) batiments))))
           surfaceTexture <- createTextureFromSurface renderer surface
           copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 550) (V2 175 50))
-          return menuID
+          if (menuID == "Raffinerie_Menu") && (isJust joueurIdCourant) then do
+            let (JoueurId num) = (May.fromJust joueurIdCourant)
+                energieVal = (May.fromJust (M.lookup (JoueurId num) energie))
+            if (energieVal < 0) then do
+              SDL.rendererDrawColor renderer SDL.$= SDL.V4 173 140 118 255
+              SDL.fillRect renderer (Just $ SDL.Rectangle (SDL.P $ SDL.V2 (1740-190+5) 5) (SDL.V2 185 190))
+              surface <- Font.solid font white (DT.pack ("Energie negative"))
+              surfaceTexture <- createTextureFromSurface renderer surface
+              copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+10) 100) (V2 150 50))
+              return menuID
+            else return menuID
+            return menuID
+          else return menuID
     else return menuID
     return menuID
     else do
@@ -876,8 +962,20 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
           surfaceTexture <- createTextureFromSurface renderer surface
           copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+5) 550) (V2 175 50))
         else return ()
-        let res2 = fmap (\event -> processMouseEventMenus x y "Usine_Menu" event) mouseButtonEvents
-        if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+        if (isJust joueurIdCourant) then do
+          let (JoueurId num) = (May.fromJust joueurIdCourant)
+              energieVal = (May.fromJust (M.lookup (JoueurId num) energie))
+          if (energieVal < 0) then do
+            SDL.rendererDrawColor renderer SDL.$= SDL.V4 173 140 118 255
+            SDL.fillRect renderer (Just $ SDL.Rectangle (SDL.P $ SDL.V2 (1740-190+5) 5) (SDL.V2 185 190))
+            surface <- Font.solid font white (DT.pack ("Energie negative"))
+            surfaceTexture <- createTextureFromSurface renderer surface
+            copy renderer surfaceTexture Nothing (Just $ SDL.Rectangle (P $ V2 (1740-190+10) 100) (V2 150 50))
+            return menuID
+          else do
+            let res2 = fmap (\event -> processMouseEventMenus x y "Usine_Menu" event) mouseButtonEvents
+            if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
+        else return menuID
       else if (menuID  == "Usine_Collecteur") then do
         let res2 = fmap (\event -> processMouseEventMenus x y "Usine_Collecteur" event) mouseButtonEvents
         if (((length res2) > 0) && ((head res2) /= "")) then return (head res2) else return menuID
@@ -949,7 +1047,6 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
       else return (envRes_combattant_collecteur, menuID)
     else return (envRes_combattant_collecteur, menuID)
 
-  -- TODO voir pour utiliser un Either listeCollecteurs listeCombattants
   (envRes_combattant_collecteur, listeCollecteurs, menuID) <- if (menuID  == "Usine_Collecteur") then do
       let res3 = fmap (\event -> processMouseEventAchat x y "Usine_Collecteur" event) mouseButtonEvents
       if (((length res3) > 0) && ((head res3) == "Carte")) then do
@@ -992,9 +1089,9 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
 
   (tmap2', smap2') <- if (length bats /= length batiments)
                     then load_batiments renderer tmap smap [bats !! ((length bats) - 1)] 0
-                    else if (length units /= length unites) then do
-                      putStrLn $ "ajoute" <> show (units !! ((length units) - 1))
-                      load_unites renderer tmap smap [units !! ((length units) - 1)] 0 -- voir pour last
+                    -- else if (length units /= length unites) then do
+                    --   putStrLn $ "ajoute" <> show (units !! ((length units) - 1))
+                    --   load_unites renderer tmap smap [units !! ((length units) - 1)] 0 -- voir pour last
                     else return (tmap2, smap2)
 
   -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1068,7 +1165,7 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
   -- if (pX > x+100) && (pX < x-100) then putStrLn $ "toucheee" else putStrLn $ "non"
   -- putStrLn $ "AVANT ETAPE"
     -- if MO.getAbsoluteMouseLocation
-  let (newEnv@(Environnement _ _ unitess _), newListCollecteurs, newListCombattants) = etape envRes_combattant_collecteur listeCollecteurs listeCombattants
+  let (newEnv@(Environnement joueursNew _ unitess _), newListCollecteurs, newListCombattants) = etape envRes_combattant_collecteur listeCollecteurs listeCombattants energie
   
   -- if (length newListCombattants == 2) then error ("ah ouais: " <> show newListCombattants) else pure ()
 
@@ -1104,12 +1201,16 @@ gameLoop frameRate renderer tmap smap kbd [gameState_perso1, gameState_perso2] m
                   else return (tmap2', smap2')
                 else return (tmap2', smap2')
 
-  -- (tmap2', smap2') <- if (length units /= length unites)
-  --                 then do
-  --                   putStrLn $ "ajoute" <> show ((M.toList unitess) !! ((length (M.toList unitess)) - 1))
-  --                   load_unites renderer tmap2' smap2' [(M.toList unitess) !! ((length (M.toList unitess)) - 1)] 0
-  --                 else return (tmap2', smap2')
+  (tmap2', smap2') <- if (length units /= length unites)
+                  then do
+                    putStrLn $ "ajoute" <> show ((M.toList unitess) !! ((length (M.toList unitess)) - 1))
+                    load_unites renderer tmap2' smap2' [(M.toList unitess) !! ((length (M.toList unitess)) - 1)] 0
+                  else return (tmap2', smap2')
 
-  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap2' smap2' kbd' [gameState', gameState_perso2] menuID newEnv newListCollecteurs newListCombattants joueurIdCourant uniteStocke)
+  energie <- return (consommeEnergie newEnv energie 0)
+
+  
+
+  unless (K.keypressed KeycodeEscape kbd') (gameLoop frameRate renderer tmap2' smap2' kbd' [gameState', gameState_perso2] menuID newEnv newListCollecteurs newListCombattants joueurIdCourant uniteStocke energie)
 
 

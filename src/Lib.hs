@@ -95,6 +95,12 @@ module Lib
     get_carte,
     getCuveVal,
     cuveMax,
+    distance,
+    set_ordre_deplacer_collecteur_direct,
+    get_id_Joueurs,
+    jid,
+    consommeEnergie,
+    consommationJoueur,
     Cuve(..),
     Ordre(..),
     Collecteur(..),
@@ -149,6 +155,7 @@ consommationUsine = 10
 
 consommationRaffinerie :: Int
 consommationRaffinerie = 20   
+
 
 cuveMax :: Integer
 cuveMax = 1
@@ -698,6 +705,13 @@ set_ordre_deplacer_collecteur (Collecteur uniteIDCollecteur uniteCollecteur cuve
         else 
             (Collecteur uniteIDCollecteur uniteCollecteur cuveCollecteur pvCollecteur (ordresCollecteur ++ [(Deplacer coord)]) butCollecteur) : listeSansCollecteur
 
+set_ordre_deplacer_collecteur_direct :: Collecteur -> [Collecteur] -> Coord -> [Collecteur] 
+set_ordre_deplacer_collecteur_direct (Collecteur uniteIDCollecteur uniteCollecteur cuveCollecteur pvCollecteur ordresCollecteur butCollecteur) listeCollecteurs coord =
+    let listeSansCollecteur = List.filter (\(Collecteur uIDCollec _ _ _ _ _) -> uIDCollec /= uniteIDCollecteur) listeCollecteurs
+    in
+        (Collecteur uniteIDCollecteur uniteCollecteur cuveCollecteur pvCollecteur ordresCollecteur (Deplacer coord)) : listeSansCollecteur
+        
+
 set_ordre_collect_collecteur :: Collecteur -> [Collecteur] -> Coord -> [Collecteur] 
 set_ordre_collect_collecteur (Collecteur uniteIDCollecteur uniteCollecteur cuveCollecteur pvCollecteur ordresCollecteur butCollecteur) listeCollecteurs coord =
     let listeSansCollecteur = List.filter (\(Collecteur uIDCollec _ _ _ _ _) -> uIDCollec /= uniteIDCollecteur) listeCollecteurs
@@ -1000,27 +1014,39 @@ get_raffinerie_closest (Collecteur uniteIDCollecteur uniteCollecteur _ _ _ _) (E
 -- data Joueur = Joueur {username :: String, userid :: JoueurId, creditJouer :: Int} deriving (Show, Eq, Ord)
 
 -- | Recolte des ressources dans la cuve du Collecteur par la Raffinerie et transformes credits 
-recolte_collecteur_raffinerie ::  Collecteur -> Environnement -> (Collecteur, Environnement)
-recolte_collecteur_raffinerie  (Collecteur uniteID uniteCollecteur cuve pvv ordresCollecteur butCollecteur) (Environnement joueurs mapp unites bats) = 
+recolte_collecteur_raffinerie ::  Collecteur -> Environnement ->  M.Map JoueurId Int -> (Collecteur, Environnement)
+recolte_collecteur_raffinerie  (Collecteur uniteID uniteCollecteur cuve pvv ordresCollecteur butCollecteur) env@(Environnement joueurs mapp unites bats) ener = 
     let player@(Joueur username userID creditJoueur) = head (List.filter (\(Joueur _ userID creditJoueur) -> userID == (uproprio uniteCollecteur)) joueurs)
     in 
         let joueursSansPlayer = (List.filter (\(Joueur _ userID creditJoueur) -> userID /= (uproprio uniteCollecteur)) joueurs)
         in
             if (length ordresCollecteur > 0) then
-                (
-                    (Collecteur uniteID uniteCollecteur (changeCuve cuve 0) pvv (List.drop 1 ordresCollecteur) (head ordresCollecteur)),
-                    (Environnement ((Joueur username userID (creditJoueur+(fromIntegral ((getCuveVal cuve)*10)))):joueursSansPlayer) mapp unites bats)
-                )
+                if ((May.fromJust (M.lookup (uproprio uniteCollecteur) ener) ) > 0) then
+                    (
+                        (Collecteur uniteID uniteCollecteur (changeCuve cuve 0) pvv (List.drop 1 ordresCollecteur) (head ordresCollecteur)),
+                        (Environnement ((Joueur username userID (creditJoueur+(fromIntegral ((getCuveVal cuve)*10)))):joueursSansPlayer) mapp unites bats)
+                    )
+                else
+                    (
+                        (Collecteur uniteID uniteCollecteur cuve pvv ordresCollecteur (Collecter (C (-1) (-1)))),
+                        env
+                    )
             else 
-                (
-                    (Collecteur uniteID uniteCollecteur (changeCuve cuve 0) pvv ordresCollecteur Rien),
-                    (Environnement ((Joueur username userID (creditJoueur+(fromIntegral ((getCuveVal cuve)*10)))):joueursSansPlayer) mapp unites bats)
-                )
+                if ((May.fromJust (M.lookup (uproprio uniteCollecteur) ener) ) > 0) then
+                    (
+                        (Collecteur uniteID uniteCollecteur (changeCuve cuve 0) pvv ordresCollecteur Rien),
+                        (Environnement ((Joueur username userID (creditJoueur+(fromIntegral ((getCuveVal cuve)*10)))):joueursSansPlayer) mapp unites bats)
+                    )
+                else
+                    (
+                        (Collecteur uniteID uniteCollecteur cuve pvv ordresCollecteur (Collecter (C (-1) (-1)))),
+                        env
+                    )
 
 
 -- | Si le collecteur n'est pas dans destination bouge le, sinon collecter
-collecter_coord_aux :: Environnement -> Collecteur -> (Collecteur, Environnement)
-collecter_coord_aux env@(Environnement joueurs (Carte mapp) unites bats) collecteur@(Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) = 
+collecter_coord_aux :: Environnement -> Collecteur ->  M.Map JoueurId Int -> (Collecteur, Environnement)
+collecter_coord_aux env@(Environnement joueurs (Carte mapp) unites bats) collecteur@(Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) ener = 
         case butCollecteur of 
             Collecter coord@(C x y) ->
                 if (x == -1) && (y == -1) then 
@@ -1030,7 +1056,7 @@ collecter_coord_aux env@(Environnement joueurs (Carte mapp) unites bats) collect
                            (collecteur, env) -- on reste sur place
                         else 
                             if (close_to_ennemi (ucoord uniteCollecteur) (C xRaffinerie yRaffinerie)) then -- == closest to Batiment too
-                                recolte_collecteur_raffinerie collecteur env
+                                recolte_collecteur_raffinerie collecteur env ener
                             else 
                                 let uniteDep = (deplacer_unite env uniteCollecteur (C xRaffinerie yRaffinerie)) 
                                 in 
@@ -1062,15 +1088,15 @@ collecter_coord_aux env@(Environnement joueurs (Carte mapp) unites bats) collect
             otherwise -> (collecteur, env)
 
 -- | Fonction pour parcourir la liste collecteur et appliquer le but eventuel de collecter 
-parcours_collecter_coord_aux :: Environnement -> [Collecteur] -> [Collecteur] -> ([Collecteur], Environnement)
-parcours_collecter_coord_aux env listCollecteur listCollecteurRes = 
+parcours_collecter_coord_aux :: Environnement -> [Collecteur] -> [Collecteur] ->  M.Map JoueurId Int -> ([Collecteur], Environnement)
+parcours_collecter_coord_aux env listCollecteur listCollecteurRes ener = 
     if (listCollecteur == []) then (listCollecteur, env)
     else
         if (List.length listCollecteur) > 1 then
-            (let (res_collecteur, res_env) = collecter_coord_aux env (List.head listCollecteur) in
-                parcours_collecter_coord_aux res_env (List.drop 1 listCollecteur) (listCollecteurRes++[res_collecteur]))
+            (let (res_collecteur, res_env) = collecter_coord_aux env (List.head listCollecteur) ener in
+                parcours_collecter_coord_aux res_env (List.drop 1 listCollecteur) (listCollecteurRes++[res_collecteur]) ener)
         else 
-            (let (res_collecteur, res_env) = collecter_coord_aux env (List.head listCollecteur) in
+            (let (res_collecteur, res_env) = collecter_coord_aux env (List.head listCollecteur) ener in
                 (listCollecteurRes++[res_collecteur], res_env)
             )
 
@@ -1200,9 +1226,9 @@ parcours_combattant_patrouiller_aux env listCombattant listCollecteur acc =
 
 
 -- | Fonction pour gerer la nouvelle list collecteurs et nouvelle env, appele dans 'etape'
-collecter_Collecteur_patrouiller_Combattant_coord :: Environnement -> [Collecteur] -> [Combattant] -> ([Collecteur], [Combattant], Environnement)
-collecter_Collecteur_patrouiller_Combattant_coord env listCollecteurs listCombattans = 
-    let (resListCollecteur, envApresCollecte) = parcours_collecter_coord_aux env listCollecteurs [] 
+collecter_Collecteur_patrouiller_Combattant_coord :: Environnement -> [Collecteur] -> [Combattant] -> M.Map JoueurId Int -> ([Collecteur], [Combattant], Environnement)
+collecter_Collecteur_patrouiller_Combattant_coord env listCollecteurs listCombattans ener = 
+    let (resListCollecteur, envApresCollecte) = parcours_collecter_coord_aux env listCollecteurs [] ener
     in
         let (resListCollecteurApresPatrouiller, resListCombattantApresPatrouiller, (Environnement joueurs mapp unites bats)) =
              parcours_combattant_patrouiller_aux envApresCollecte listCombattans resListCollecteur listCombattans
@@ -1217,17 +1243,42 @@ collecter_Collecteur_patrouiller_Combattant_coord env listCollecteurs listCombat
 -----------------------------------------------------étape--------------------------------------------------------------------------------------------------------------
 -- faire prop pre etape 
 
-etape :: Environnement -> [Collecteur] -> [Combattant] -> (Environnement, [Collecteur], [Combattant])
-etape env listCollecteurs listeCombattants  =  
+etape :: Environnement -> [Collecteur] -> [Combattant] ->  M.Map JoueurId Int -> (Environnement, [Collecteur], [Combattant])
+etape env listCollecteurs listeCombattants  ener =  
     let (env_resDep, list_collecteurDep, list_combattantDep) = deplacer_Unite_Cood env listCollecteurs listeCombattants
     in 
-        let (list_collecteurRes, list_combattantRes, envRes) = collecter_Collecteur_patrouiller_Combattant_coord env_resDep list_collecteurDep list_combattantDep
+        let (list_collecteurRes, list_combattantRes, envRes) = collecter_Collecteur_patrouiller_Combattant_coord env_resDep list_collecteurDep list_combattantDep ener
         in
             let (envRes2, listColl2, listCom2) = verifie_unites envRes list_collecteurRes list_combattantRes
             in
                 let (envRes3, listCom3, listCol3) = eliminer_bats_pv_null envRes2 listCom2 listColl2
                 in 
                     (envRes3, listCol3, listCom3)
+
+consommeEnergie :: Environnement -> M.Map JoueurId Int -> Int -> M.Map JoueurId Int
+consommeEnergie env@(Environnement joueur _ _ bat) ener index =
+    if (index == (List.length joueur)-1) then 
+        let joueurID = jid (joueur !! index)
+        in
+            (M.insert joueurID ((May.fromJust (M.lookup joueurID ener))+(consommationJoueur env joueurID)) ener)
+    else 
+        let joueurID = jid (joueur !! index)
+        in
+            consommeEnergie env (M.insert joueurID ((May.fromJust (M.lookup joueurID ener))+(consommationJoueur env joueurID)) ener) (index + 1)
+
+consommationJoueur :: Environnement -> JoueurId -> Int
+consommationJoueur (Environnement _ _ _ bat) joueurID =
+  let batlistJoueur = List.filter (\(Batiment _ _ _ j) -> j == joueurID) (M.elems bat)
+      totalConsommation = foldr calculateConsommation 0 batlistJoueur
+  in totalConsommation
+  where
+    calculateConsommation :: Batiment -> Int -> Int
+    calculateConsommation (Batiment "Raffinerie" _ _ _) acc = acc - consommationRaffinerie
+    calculateConsommation (Batiment "Usine" _ _ _) acc = acc - consommationUsine
+    calculateConsommation (Batiment "QG" _ _ _) acc = acc + productionQG
+    calculateConsommation (Batiment "Centrale" _ _ _) acc = acc + productionCentrale
+    calculateConsommation _ acc = acc
+                                    
 
 
 
