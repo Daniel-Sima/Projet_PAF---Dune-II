@@ -9,7 +9,7 @@ import qualified Data.Map.Strict as M
 
 import Lib 
 
-import Test.Hspec -- a voir
+import Test.Hspec 
 
 import Data.Maybe as May
 

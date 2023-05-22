@@ -7,7 +7,7 @@ import Lib
 
 main :: IO ()
 main = hspec $ do
-  -- CT.engineSpec -- a voir 
-  -- ET.engineSpec -- a voir 
-  -- BT.engineSpec
+  CT.engineSpec 
+  ET.engineSpec  
+  BT.engineSpec
   UT.engineSpec

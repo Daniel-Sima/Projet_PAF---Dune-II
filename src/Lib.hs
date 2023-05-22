@@ -101,6 +101,9 @@ module Lib
     jid,
     consommeEnergie,
     consommationJoueur,
+    pvBats,
+    pvCollecteurMax,
+    pvCombattantMax,
     Cuve(..),
     Ordre(..),
     Collecteur(..),
@@ -376,16 +379,6 @@ get_carte (Environnement _ eCarte _ _) = eCarte
 ------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------- Part III ----------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------
--- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
--- data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId}
-
--- newtype JoueurId = JoueurId Int deriving (Show, Eq, Ord)
--- data Joueur = Joueur {username :: String, userid :: JoueurId, creditJouer :: Integer} deriving (Show, Eq, Ord)
-
--- counterHerbeMap :: Carte -> Int
--- counterHerbeMap mapp = if ((M.size mapp) == 0) then 0
---                        else M.foldr (\x-> if ((May.fromJust (M.lookup x (carte mapp))) == Herbe) then 1 else 0) 0 (carte mapp) 
-
 listCoordtoJoueur :: [Coord] -> Int -> [Joueur]
 listCoordtoJoueur listPlayers index = 
     if (index < List.length listPlayers) then (Joueur ("" ++ show index) (JoueurId index) creditsDepart) : (listCoordtoJoueur listPlayers (index+1))
@@ -541,11 +534,6 @@ prop_post_destruction_centrale (Environnement joueursAvant mappAvant unitesAvant
 ------------------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------- Part IV ----------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------
--- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
--- data Batiment = Batiment {bNom :: String, prix :: Int, batCoord :: Coord, batProprio :: JoueurId}
--- data Unite = Unite {uNom :: String, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
-
-
 data Cuve =
   Cuve Integer Integer
   | CuvePleine Integer
@@ -568,7 +556,6 @@ getCuveVal (CuveVide c) = 0
 getCuveVal (CuvePleine q) = q
 
 -- changer l'état d'une cuve (pas nouvelle cuve)
-
 changeCuve :: Cuve -> Integer -> Cuve
 changeCuve cu q
     | q == 0 = CuveVide (capacite cu) 
@@ -647,7 +634,6 @@ set_collecteur (Environnement joueurs mapp unites bats) coordUsine player listCo
     in 
         ((Environnement (reduction_credit_player joueurs player prixCollecteur) mapp (M.insert (UniteId (M.size unites)) (add_collecteur_collection (UniteId (M.size unites)) (Unite "Collecteur" (C x (y+1)) (jid player)) listCollecteurs) unites) bats), (listCollecteurs ++ [(Collecteur (UniteId (M.size unites)) (Unite "Collecteur" (C x (y+1)) (jid player)) (CuveVide cuveMax) pvCollecteurMax [] Rien)])) 
 
--- TODO ajouter le lieu de spawn du collecteur
 prop_post_set_collecteur :: Environnement -> Coord -> Joueur -> [Collecteur] -> Bool
 prop_post_set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs =
     let ((Environnement joueursApres mappApres unitesApres batsApres), listCollecteursApres) = set_collecteur (Environnement joueursAvant mappAvant unitesAvant batsAvant) coordUsine player listCollecteurs
@@ -693,9 +679,6 @@ prop_post_set_combattant (Environnement joueursAvant mappAvant unitesAvant batsA
         prop_inv_Environnement (Environnement joueursApres mappApres unitesApres batsApres)
 
 
-------
--- TODO fct generale ordre et pre/post
-------
 set_ordre_deplacer_collecteur :: Collecteur -> [Collecteur] -> Coord -> [Collecteur] 
 set_ordre_deplacer_collecteur (Collecteur uniteIDCollecteur uniteCollecteur cuveCollecteur pvCollecteur ordresCollecteur butCollecteur) listeCollecteurs coord =
     let listeSansCollecteur = List.filter (\(Collecteur uIDCollec _ _ _ _ _) -> uIDCollec /= uniteIDCollecteur) listeCollecteurs
@@ -741,16 +724,6 @@ set_ordre_pattrouiller_combattant (Combattant uniteIDCombattant uniteCombattant 
 
 
 ------------------------------------------------------------ Etape -----------------------------------------------------------------------
--- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
--- data Batiment = Batiment {bNom :: String, pv :: Int, batCoord :: Coord, batProprio :: JoueurId}
--- data Unite = Unite {uNom :: UniteId, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
--- data Collecteur = Collecteur {uniteIDCollecteur :: UniteId, uniteCollecteur :: Unite, cuve :: Cuve, pvCollecteur :: Int, ordresCollecteur :: [Ordre], butCollecteur :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
--- data Combattant = Combattant {uniteIDCombattant :: UniteId, uniteCombatant :: Unite, pvCombattant :: Int, ordresCombattant :: [Ordre], butCombattant :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
-
--- etape_collecteurs :: [Collecteur] ->  M.Map UniteId Unite 
-
---filterWithKey :: Ord k => (k -> a -> Bool) -> Map k a -> Map k a
-
 -- | Fonction qui eliminer tous les UniteId dont le pv inferieur <= 0 dans Environnement
 eliminer_unites_env :: Environnement -> [UniteId] -> Environnement
 eliminer_unites_env (Environnement joueurs mapp unites bats) listUniteID = (Environnement joueurs mapp (M.filterWithKey (\k _ -> not (elem k listUniteID)) unites) bats) 
@@ -943,29 +916,6 @@ deplacer_Unite_Cood (Environnement joueurs mapp unites bats) listCollecteurs lis
 
 
 -----------------------------------------------------collecter-------------------------------------------------------------------------------------------------------------
--- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
--- data Batiment = Batiment {bNom :: String, pv :: Int, batCoord :: Coord, batProprio :: JoueurId}
--- data Unite = Unite {uNom :: UniteId, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
--- data Collecteur = Collecteur {uniteIDCollecteur :: UniteId, uniteCollecteur :: Unite, cuve :: Cuve, pvCollecteur :: Int, ordresCollecteur :: [Ordre], butCollecteur :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
--- data Combattant = Combattant {uniteIDCombattant :: UniteId, uniteCombatant :: Unite, pvCombattant :: Int, ordresCombattant :: [Ordre], butCombattant :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
--- data Coord = C {cx :: Int ,cy :: Int} deriving (Show, Eq, Ord)
-
--- data Terrain = Herbe
---     | Ressource Int     
---     | Eau
---     deriving (Show, Eq, Ord)
-
-        
--- newtype Carte = Carte {carte :: M.Map Coord Terrain } deriving (Show, Eq, Ord)
-
--- data Cuve =
---   Cuve Integer Integer
---   | CuvePleine Integer
---   | CuveVide Integer
---   deriving (Show, Eq, Ord)
-
--- collecteCase :: Coord -> Int -> Carte -> (Int, Carte)
-
 -- | Fonction pour collecter 1 ressource (pour l'instant)
 collecter_unite :: Environnement -> Collecteur -> Coord -> (Maybe Collecteur, Maybe Environnement, Bool)
 collecter_unite (Environnement joueurs (Carte mapp) unites bat) (Collecteur uniteIDCollecteur uniteCollecteur cuve pvCollecteur ordresCollecteur butCollecteur) coord = 
@@ -1010,8 +960,6 @@ get_raffinerie_closest (Collecteur uniteIDCollecteur uniteCollecteur _ _ _ _) (E
                 get_coord_raffineries_closes (ucoord uniteCollecteur) raffineriesJoueur
             else 
                 (C (-1) (-1)) -- pas de raffinerie dispo pour l'instant, donc bloque
-
--- data Joueur = Joueur {username :: String, userid :: JoueurId, creditJouer :: Int} deriving (Show, Eq, Ord)
 
 -- | Recolte des ressources dans la cuve du Collecteur par la Raffinerie et transformes credits 
 recolte_collecteur_raffinerie ::  Collecteur -> Environnement ->  M.Map JoueurId Int -> (Collecteur, Environnement)
@@ -1102,20 +1050,6 @@ parcours_collecter_coord_aux env listCollecteur listCollecteurRes ener =
 
 
 -----------------------------------------------------patrouiller-------------------------------------------------------------------------------------------------------
--- data Environnement = Environnement {joueurs :: [Joueur], ecarte :: Carte, unites :: M.Map UniteId Unite, batiments :: M.Map BatId Batiment}
--- data Batiment = Batiment {bNom :: String, pv :: Int, batCoord :: Coord, batProprio :: JoueurId}
--- data Unite = Unite {uNom :: String, unitCoord :: Coord, unitProprio :: JoueurId} deriving (Eq, Show)
--- data Collecteur = Collecteur {uniteIDCollecteur :: UniteId, uniteCollecteur :: Unite, cuve :: Cuve, pvCollecteur :: Int, ordresCollecteur :: [Ordre], butCollecteur :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
--- data Combattant = Combattant {uniteIDCombattant :: UniteId, uniteCombatant :: Unite, pvCombattant :: Int, ordresCombattant :: [Ordre], butCombattant :: Ordre } deriving (Show, Eq, Ord) -- A voir deriving
--- data Coord = C {cx :: Int ,cy :: Int} deriving (Show, Eq, Ord)
-
--- data Terrain = Herbe
---     | Ressource Int     
---     | Eau
---     deriving (Show, Eq, Ord)
-        
--- newtype Carte = Carte {carte :: M.Map Coord Terrain } deriving (Show, Eq, Ord)
-
 -- | Fonction qui selon l'Unite retourne le Combattant ou le Collecteur associe  
 find_unite_collecteur_combattant :: [Combattant] -> [Collecteur] -> Unite -> Either Combattant Collecteur
 find_unite_collecteur_combattant listeCombattant listeCollecteur u@(Unite uNom uCoord uProrpio) = 
@@ -1241,8 +1175,7 @@ collecter_Collecteur_patrouiller_Combattant_coord env listCollecteurs listCombat
             
 
 -----------------------------------------------------étape--------------------------------------------------------------------------------------------------------------
--- faire prop pre etape 
-
+-- | Fonction qui gere le bon fonctionnement des Ordres des Unites et applique les suppressions des Unites/Batiments "morts"
 etape :: Environnement -> [Collecteur] -> [Combattant] ->  M.Map JoueurId Int -> (Environnement, [Collecteur], [Combattant])
 etape env listCollecteurs listeCombattants  ener =  
     let (env_resDep, list_collecteurDep, list_combattantDep) = deplacer_Unite_Cood env listCollecteurs listeCombattants

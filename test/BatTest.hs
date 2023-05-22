@@ -9,7 +9,7 @@ import qualified Data.Map.Strict as M
 
 import Lib 
 
-import Test.Hspec -- a voir
+import Test.Hspec 
 
 import Data.Maybe as May
 
@@ -48,40 +48,40 @@ listCoordIllegalEau = [(C 3 3), (C 3 0), (C 1 3)]
 listCoordIllegalMemeCoor = [(C 3 0), (C 3 0), (C 1 3)]
 
 player1 :: Joueur
-player1 = Joueur "0" (JoueurId 0) 100
+player1 = Joueur "0" (JoueurId 0) 1000
 
 player1AfterRaffinerie :: Joueur
-player1AfterRaffinerie = Joueur "0" (JoueurId 0) 50
+player1AfterRaffinerie = Joueur "0" (JoueurId 0) 950
 
 player1AfterUsine :: Joueur
-player1AfterUsine = Joueur "0" (JoueurId 0) 75
+player1AfterUsine = Joueur "0" (JoueurId 0) 975
 
 player1AfterCentrale :: Joueur
-player1AfterCentrale = Joueur "0" (JoueurId 0) 0
+player1AfterCentrale = Joueur "0" (JoueurId 0) 900
 
 player2 :: Joueur
-player2 = Joueur "1" (JoueurId 1) 100
+player2 = Joueur "1" (JoueurId 1) 1000
 
 player3 :: Joueur
-player3 = Joueur "2" (JoueurId 2) 100
+player3 = Joueur "2" (JoueurId 2) 1000
 
 qr1 :: Batiment
-qr1 = Batiment "QG" 0 (C 0 2) (JoueurId 0)
+qr1 = Batiment "QG" pvBats (C 0 2) (JoueurId 0)
 
 qr2 :: Batiment
-qr2 = Batiment "QG" 0 (C 3 0) (JoueurId 1)
+qr2 = Batiment "QG" pvBats (C 3 0) (JoueurId 1)
 
 qr3 :: Batiment
-qr3 = Batiment "QG" 0 (C 1 3) (JoueurId 2)
+qr3 = Batiment "QG" pvBats (C 1 3) (JoueurId 2)
 
 r1 :: Batiment
-r1 = Batiment "Raffinerie" 0 (C 3 2) (JoueurId 0)
+r1 = Batiment "Raffinerie" pvBats (C 3 2) (JoueurId 0)
 
 u1 :: Batiment
-u1 = Batiment "Usine" 0 (C 4 4) (JoueurId 0)
+u1 = Batiment "Usine" pvBats (C 4 4) (JoueurId 0)
 
 c1 :: Batiment
-c1 = Batiment "Centrale" 0 (C 3 4) (JoueurId 0)
+c1 = Batiment "Centrale" pvBats (C 3 4) (JoueurId 0)
 
 envRes :: Environnement
 envRes = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3)])

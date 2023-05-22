@@ -49,15 +49,3 @@ gameStep gstate kbd deltaTime =
               
 
   in modif gstate 
-
--- compareMousePerson :: MousePosition -> GameState -> Bool
--- compareMousePerson (SDL.P (SDL.V2 x y)) gs@(GameState pX pY sp) = px <= x && x <= (px + 100) && py <= y && y <= (py + 100)
-
--- handleEventMouse :: Event -> GameState -> Bool
--- handleEventMouse event gs@(GameState pX pY _) =
---   case eventPayload event of
---     KeyboardEvent keyboardEvent -> (if keyboardEventKeyMotion keyboardEvent == Pressed
---       then ( let (SDL.P (SDL.V2 x y) ) =  mouseMotionEventPos in
---               x == pX && y == pY 
---       ) else False )  
---     _ -> False

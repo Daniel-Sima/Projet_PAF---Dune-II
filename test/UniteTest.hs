@@ -9,7 +9,7 @@ import qualified Data.Map.Strict as M
 
 import Lib 
 
-import Test.Hspec -- a voir
+import Test.Hspec
 
 import Data.Maybe as May
 
@@ -45,31 +45,31 @@ carteEx = Carte (M.fromList [ (C 0 0, Herbe)
 
 
 player1 :: Joueur
-player1 = Joueur "0" (JoueurId 0) 100
+player1 = Joueur "0" (JoueurId 0) 1000  
 
 player1_buying_collecteur :: Joueur
-player1_buying_collecteur = Joueur "0" (JoueurId 0) 90
+player1_buying_collecteur = Joueur "0" (JoueurId 0) 990
 
 player1_buying_combattant :: Joueur
-player1_buying_combattant = Joueur "0" (JoueurId 0) 80
+player1_buying_combattant = Joueur "0" (JoueurId 0) 980
 
 player2 :: Joueur
-player2 = Joueur "1" (JoueurId 1) 100
+player2 = Joueur "1" (JoueurId 1) 1000
 
 player3 :: Joueur
-player3 = Joueur "2" (JoueurId 2) 100
+player3 = Joueur "2" (JoueurId 2) 1000
 
 qr1 :: Batiment
-qr1 = Batiment "QG" 0 (C 0 2) (JoueurId 0)
+qr1 = Batiment "QG" pvBats (C 0 2) (JoueurId 0)
 
 qr2 :: Batiment
-qr2 = Batiment "QG" 0 (C 3 0) (JoueurId 1)
+qr2 = Batiment "QG" pvBats (C 3 0) (JoueurId 1)
 
 qr3 :: Batiment
-qr3 = Batiment "QG" 0 (C 1 3) (JoueurId 2)
+qr3 = Batiment "QG" pvBats (C 1 3) (JoueurId 2)
 
 u1 :: Batiment
-u1 = Batiment "Usine" 0 (C 4 4) (JoueurId 0)
+u1 = Batiment "Usine" pvBats (C 4 3) (JoueurId 0)
 
 envRes :: Environnement
 envRes = Environnement [player1, player2, player3] carteEx (M.empty) (M.fromList [(BatId 0, qr1), (BatId 1, qr2), (BatId 2, qr3), (BatId 3, u1)])
@@ -122,13 +122,13 @@ envRes_collecteur_0ordre = Environnement [player1, player2, player3] carteEx (M.
 
 ----------------------------------------------------------cuve--------------------------------------------------------------------------------------
 cuve_valide_pleine :: Cuve
-cuve_valide_pleine = CuvePleine 10
+cuve_valide_pleine = CuvePleine cuveMax
  
 cuve_valide_normale :: Cuve
-cuve_valide_normale = Cuve 1 10
+cuve_valide_normale = Cuve 0 cuveMax
 
 cuve_valide_vide :: Cuve
-cuve_valide_vide = CuveVide 10
+cuve_valide_vide = CuveVide cuveMax
 
 cuve_invalide :: Cuve
 cuve_invalide = Cuve 10 1
@@ -185,34 +185,34 @@ uniteCombattant_apres_deplacer = Unite "Combattant" (C 3 4) (JoueurId 0)
 ------------------------------------------------------------collecteur--------------------------------------------------------------------------------
 
 collecteur_bloque:: Collecteur
-collecteur_bloque = Collecteur (UniteId 0) uniteBloque cuve_valide_pleine 3 [] (Deplacer (C 1 1)) 
+collecteur_bloque = Collecteur (UniteId 0) uniteBloque cuve_valide_pleine pvCollecteurMax [] (Deplacer (C 1 1)) 
 
 collecteur_bloque_apres:: Collecteur
-collecteur_bloque_apres = Collecteur (UniteId 0) uniteBloque cuve_valide_pleine 3 [] (Rien) 
+collecteur_bloque_apres = Collecteur (UniteId 0) uniteBloque cuve_valide_pleine pvCollecteurMax [] (Rien) 
 
 collecteur_valide :: Collecteur
-collecteur_valide = Collecteur (UniteId 1) uniteEtudiant cuve_valide_pleine 3 [Collecter (C 4 4)] (Deplacer (C 4 2)) 
+collecteur_valide = Collecteur (UniteId 1) uniteEtudiant cuve_valide_pleine pvCollecteurMax [Collecter (C 4 4)] (Deplacer (C 4 2)) 
 
 collecteur_valide0 :: Collecteur
-collecteur_valide0 = Collecteur (UniteId 0) uniteEtudiant0 cuve_valide_vide 3 [] (ordreRien) 
+collecteur_valide0 = Collecteur (UniteId 0) uniteEtudiant0 cuve_valide_vide pvCollecteurMax [] (ordreRien) 
 
 collecteur_valide_by_water :: Collecteur
-collecteur_valide_by_water = Collecteur (UniteId 1) uniteEtudiant_by_water cuve_valide_pleine 3 [Collecter (C 4 4)] (Deplacer (C 3 4))
+collecteur_valide_by_water = Collecteur (UniteId 1) uniteEtudiant_by_water cuve_valide_pleine pvCollecteurMax [Collecter (C 4 4)] (Deplacer (C 3 4))
 
 collecteur_valide_by_water_apres_deplacer :: Collecteur
-collecteur_valide_by_water_apres_deplacer = Collecteur (UniteId 1) uniteEtudiant_by_water_apres_deplacer cuve_valide_pleine 3 [Collecter (C 4 4)] (Deplacer (C 3 4))
+collecteur_valide_by_water_apres_deplacer = Collecteur (UniteId 1) uniteEtudiant_by_water_apres_deplacer cuve_valide_pleine pvCollecteurMax [Collecter (C 4 4)] (Deplacer (C 3 4))
 
 collecteur_valide2 :: Collecteur
-collecteur_valide2 = Collecteur (UniteId 0) uniteEtudiant2 cuve_valide_pleine 10 [Collecter (C 4 4)] (Deplacer (C 4 2)) 
+collecteur_valide2 = Collecteur (UniteId 0) uniteEtudiant2 cuve_valide_pleine pvCollecteurMax [Collecter (C 4 4)] (Deplacer (C 4 2)) 
 
 collecteur_1ordre :: Collecteur
-collecteur_1ordre = Collecteur (UniteId 0) uniteEtudiant2 cuve_valide_pleine 10 [Collecter (C 4 4)] (Deplacer (C 0 2)) 
+collecteur_1ordre = Collecteur (UniteId 0) uniteEtudiant2 cuve_valide_pleine pvCollecteurMax [Collecter (C 4 4)] (Deplacer (C 0 2)) 
 
 collecteur_0ordre :: Collecteur
-collecteur_0ordre = Collecteur (UniteId 0) uniteEtudiant2 cuve_valide_pleine 10 [] (Collecter (C 4 4)) 
+collecteur_0ordre = Collecteur (UniteId 0) uniteEtudiant2 cuve_valide_pleine pvCollecteurMax [] (Collecter (C 4 4)) 
 
 collecteur_valide_apres_deplacer :: Collecteur
-collecteur_valide_apres_deplacer = Collecteur (UniteId 1) uniteEtudiant_apres_deplacer cuve_valide_pleine 3 [Collecter (C 4 4)] (Deplacer (C 4 2))
+collecteur_valide_apres_deplacer = Collecteur (UniteId 1) uniteEtudiant_apres_deplacer cuve_valide_pleine pvCollecteurMax [Collecter (C 4 4)] (Deplacer (C 4 2))
 
 collecteur_invalide_pv_negatif :: Collecteur
 collecteur_invalide_pv_negatif = Collecteur (UniteId 1)  uniteProf cuve_valide_normale (-5) [] ordreRien
@@ -221,7 +221,7 @@ collecteur_invalide_pv_0 :: Collecteur
 collecteur_invalide_pv_0 = Collecteur (UniteId 0)  uniteProf cuve_valide_normale 0 [] ordreRien
 
 collecteur_invalide_mauvais_ordre :: Collecteur
-collecteur_invalide_mauvais_ordre = Collecteur (UniteId 1) uniteEtudiant cuve_valide_vide 10 [ordre_valide_patrouiller] ordreDeplacer
+collecteur_invalide_mauvais_ordre = Collecteur (UniteId 1) uniteEtudiant cuve_valide_vide pvCollecteurMax [ordre_valide_patrouiller] ordreDeplacer
 
 collecteurs_partie :: [Collecteur]
 collecteurs_partie = []
@@ -244,7 +244,7 @@ combattant_valide :: Combattant
 combattant_valide = Combattant (UniteId 0) uniteCombattant 1 [Deplacer (C 4 3)] (Deplacer (C 1 4))
 
 combattant_valide_nouveau :: Combattant
-combattant_valide_nouveau = Combattant (UniteId 0) uniteCombattant 3 [] ordreRien
+combattant_valide_nouveau = Combattant (UniteId 0) uniteCombattant pvCombattantMax [] ordreRien
 
 combattant_valide_apres_deplacer :: Combattant
 combattant_valide_apres_deplacer = Combattant (UniteId 0) uniteCombattant_apres_deplacer 1 [Deplacer (C 4 3)] (Deplacer (C 1 4))
@@ -275,7 +275,7 @@ prop_inv_Cuve_Spec = do
         `shouldBe` True
 
     it "returns True because in 'cuve_valide_normale' 1 > 0 and 1 < 10 " $ do
-      prop_inv_Cuve cuve_valide_normale
+      prop_inv_Cuve cuve_valide_pleine
         `shouldBe` True
     
     it "returns True because in 'cuve_valide_vide' 10 > 0 " $ do
@@ -332,58 +332,58 @@ prop_pre_set_collecteur_Spec = do
    describe "prop_pre_set_collecteur" $ do
 
     it "returns True because in 'envRes' invariant is OK, 'player1' has an usine in '(C 4 4)' and enough credits" $ do
-      prop_pre_set_collecteur envRes (C 4 4) player1 collecteurs_partie
+      prop_pre_set_collecteur envRes (C 4 3) player1 collecteurs_partie
         `shouldBe` True
 
     it "returns False because in 'envRes_sansUsine' hasn't an usine" $ do
-      prop_pre_set_collecteur envRes_sansUsine (C 4 4) player1 collecteurs_partie
+      prop_pre_set_collecteur envRes_sansUsine (C 4 3) player1 collecteurs_partie
         `shouldBe` False
     
     it "returns False because 'player2' hasn't an usine in 'envRes'" $ do
-      prop_pre_set_collecteur envRes (C 4 4) player2 collecteurs_partie
+      prop_pre_set_collecteur envRes (C 4 3) player2 collecteurs_partie
         `shouldBe` False
     
 set_collecteur_Spec = do
    describe "set_collecteur" $ do
 
     it "returns the enviroment that the collecteur is build" $ do
-      set_collecteur envRes (C 4 4) player1 collecteurs_partie
+      set_collecteur envRes (C 4 3) player1 collecteurs_partie
         `shouldBe` (envRes_collecteur, [collecteur_valide0])
 
 prop_post_set_collecteur_Spec = do
    describe "prop_post_set_collecteur" $ do
 
     it "returns True because the enviroment has a new collecteur, the credit of the player has been diminue but other things didn't changed" $ do
-      prop_post_set_collecteur envRes (C 4 4) player1 collecteurs_partie
+      prop_post_set_collecteur envRes (C 4 3) player1 collecteurs_partie
         `shouldBe` True
 
 prop_pre_set_combattant_Spec = do
    describe "prop_pre_set_combattant" $ do
 
     it "returns True because in 'envRes' invariant is OK, 'player1' has an usine in '(C 4 4)' and enough credits" $ do
-      prop_pre_set_combattant envRes (C 4 4) player1 combattants_partie
+      prop_pre_set_combattant envRes (C 4 3) player1 combattants_partie
         `shouldBe` True
 
     it "returns False because in 'envRes_sansUsine' hasn't an usine" $ do
-      prop_pre_set_combattant envRes_sansUsine (C 4 4) player1 combattants_partie
+      prop_pre_set_combattant envRes_sansUsine (C 4 3) player1 combattants_partie
         `shouldBe` False
     
     it "returns False because in 'player2' hasn't an usine in 'envRes'" $ do
-      prop_pre_set_combattant envRes (C 4 4) player2 combattants_partie
+      prop_pre_set_combattant envRes (C 4 3) player2 combattants_partie
         `shouldBe` False
     
 set_combattant_Spec = do
    describe "set_combattant" $ do
 
     it "returns the enviroment that the collecteur is build" $ do
-      set_combattant envRes (C 4 4) player1 combattants_partie
+      set_combattant envRes (C 4 3) player1 combattants_partie
         `shouldBe` (envRes_combattant, [combattant_valide_nouveau])
 
 prop_post_set_combattant_Spec = do
    describe "prop_post_set_combattant" $ do
 
     it "returns True because in 'envRes' invariant is OK, 'player1' has an usine in '(C 4 4)' and enough credits" $ do
-      prop_post_set_combattant envRes (C 4 4) player1 combattants_partie
+      prop_post_set_combattant envRes (C 4 3) player1 combattants_partie
         `shouldBe` True
 
 ----------------------------------------------------------- Etape ---------------------------------------------------------------------------------

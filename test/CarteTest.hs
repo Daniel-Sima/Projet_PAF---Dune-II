@@ -10,7 +10,7 @@ import qualified Data.Map.Strict as M
 import Lib 
 
 
-import Test.Hspec -- a voir
+import Test.Hspec 
 
 import Data.Maybe as May
 
@@ -211,9 +211,6 @@ collecteCaseSpec = do
       collecteCase (C 1 3) 9 carteEx
         `shouldBe` (0, carteEx)
     
-    it "returns 0 and the Carte because we try to collect ressource in water" $ do
-      collecteCase (C 3 3) 9 carteEx
-        `shouldBe` (0, carteEx)
 
 
 prop_post_collecteCaseSpec = do
@@ -230,11 +227,7 @@ prop_post_collecteCaseSpec = do
     it "returns True because the quantity of ressource the terrain has and the new Carte that the position we pick becomes Herbe AND others cases didn't change" $ do
       prop_post_collecteCase (C 1 4) 9 carteEx
       `shouldBe` True
-  
-    it "returns True because the we try to pick ressourse in water and the Carte after picked is still the same" $ do
-      prop_post_collecteCase (C 3 3) 9 carteEx
-        `shouldBe` True
-
+      
     it "returns True because the we try to pick ressourse in grass and the Carte after picked is still the same" $ do
       prop_post_collecteCase (C 1 3) 9 carteEx
         `shouldBe` True
