@@ -42,12 +42,12 @@ getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: 
 
 
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
-bindir     = "/home/s-daniiel/Desktop/M1 STL 2022-2023/Semestre 2/PAF - Programmation Avanc\233e en Fonctionnel/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/bin"
-libdir     = "/home/s-daniiel/Desktop/M1 STL 2022-2023/Semestre 2/PAF - Programmation Avanc\233e en Fonctionnel/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/lib/x86_64-linux-ghc-9.2.5/paf-projet-0.1.0.0-Jk5OQLyXtXGCU5bzlcMOsT"
-dynlibdir  = "/home/s-daniiel/Desktop/M1 STL 2022-2023/Semestre 2/PAF - Programmation Avanc\233e en Fonctionnel/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/lib/x86_64-linux-ghc-9.2.5"
-datadir    = "/home/s-daniiel/Desktop/M1 STL 2022-2023/Semestre 2/PAF - Programmation Avanc\233e en Fonctionnel/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/share/x86_64-linux-ghc-9.2.5/paf-projet-0.1.0.0"
-libexecdir = "/home/s-daniiel/Desktop/M1 STL 2022-2023/Semestre 2/PAF - Programmation Avanc\233e en Fonctionnel/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/libexec/x86_64-linux-ghc-9.2.5/paf-projet-0.1.0.0"
-sysconfdir = "/home/s-daniiel/Desktop/M1 STL 2022-2023/Semestre 2/PAF - Programmation Avanc\233e en Fonctionnel/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/etc"
+bindir     = "/home/s-daniiel/Desktop/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/bin"
+libdir     = "/home/s-daniiel/Desktop/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/lib/x86_64-linux-ghc-9.2.5/paf-projet-0.1.0.0-Jk5OQLyXtXGCU5bzlcMOsT"
+dynlibdir  = "/home/s-daniiel/Desktop/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/lib/x86_64-linux-ghc-9.2.5"
+datadir    = "/home/s-daniiel/Desktop/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/share/x86_64-linux-ghc-9.2.5/paf-projet-0.1.0.0"
+libexecdir = "/home/s-daniiel/Desktop/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/libexec/x86_64-linux-ghc-9.2.5/paf-projet-0.1.0.0"
+sysconfdir = "/home/s-daniiel/Desktop/Projet_PAF---Dune-II/.stack-work/install/x86_64-linux-tinfo6/7678ee8c96626034a3645216642360d6a73d8ac1c1f9cbbad77b4a3be42c0dad/9.2.5/etc"
 
 getBinDir     = catchIO (getEnv "paf_projet_bindir")     (\_ -> return bindir)
 getLibDir     = catchIO (getEnv "paf_projet_libdir")     (\_ -> return libdir)
